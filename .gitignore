@@ -23,7 +23,15 @@ wp-content/backups/
 
 # Default bundled plugins/themes can be reinstalled from WordPress
 wp-content/plugins/
-wp-content/themes/
+# Ignore installed themes
+wp-content/themes/*
+
+# Keep the customized child theme
+!wp-content/themes/caresoft/
+!wp-content/themes/caresoft/**
+
+# WordPress downloaded/generated fonts
+wp-content/fonts/
 
 # Keep wp-content folder placeholder if added later
 !wp-content/.gitkeep
