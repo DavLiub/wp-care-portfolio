@@ -61,3 +61,10 @@ backups/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Track the custom site plugin only
+!wp-content/
+!wp-content/plugins/
+wp-content/plugins/*
+!wp-content/plugins/taldav-site-tools/
+!wp-content/plugins/taldav-site-tools/**

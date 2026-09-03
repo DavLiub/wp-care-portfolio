@@ -1,0 +1,224 @@
+/*
+ * Pricing page styles for the TalDav / WP Care portfolio website.
+ */
+
+.taldav-calculator-block,
+.taldav-calculator-block * {
+    box-sizing: border-box;
+}
+
+html.taldav-calculator-open {
+    overflow: hidden;
+}
+
+.taldav-calculator-modal[hidden],
+.taldav-calculator-discount[hidden] {
+    display: none;
+}
+
+.taldav-calculator-modal {
+    align-items: center;
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 24px;
+    position: fixed;
+    z-index: 99999;
+}
+
+.taldav-calculator-backdrop {
+    background: rgba(4, 12, 24, 0.68);
+    inset: 0;
+    position: absolute;
+}
+
+.taldav-calculator-dialog {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 24px 70px rgba(4, 12, 24, 0.3);
+    color: #111827;
+    max-height: calc(100vh - 48px);
+    max-width: 760px;
+    overflow: auto;
+    padding: 32px;
+    position: relative;
+    width: min(100%, 760px);
+}
+
+.taldav-calculator-close {
+    align-items: center;
+    background: #0b9bdc;
+    border: 0;
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    font-size: 28px;
+    height: 42px;
+    justify-content: center;
+    line-height: 1;
+    position: absolute;
+    right: 18px;
+    top: 18px;
+    width: 42px;
+}
+
+.taldav-calculator-header {
+    padding-right: 52px;
+}
+
+.taldav-calculator-kicker {
+    color: #0b9bdc;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+}
+
+.taldav-calculator-header h3 {
+    font-size: 32px;
+    line-height: 1.15;
+    margin: 0 0 10px;
+}
+
+.taldav-calculator-header p {
+    color: #5f6b7a;
+    line-height: 1.55;
+    margin: 0 0 22px;
+}
+
+.taldav-calculator-options {
+    display: grid;
+    gap: 12px;
+}
+
+.taldav-calculator-option {
+    align-items: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    display: grid;
+    gap: 14px;
+    grid-template-columns: auto 1fr auto;
+    padding: 16px;
+}
+
+.taldav-calculator-option.is-selected {
+    border-color: #0b9bdc;
+    box-shadow: 0 0 0 3px rgba(11, 155, 220, 0.12);
+}
+
+.taldav-calculator-option input {
+    height: 20px;
+    width: 20px;
+}
+
+.taldav-calculator-option strong {
+    display: block;
+    font-size: 16px;
+    line-height: 1.35;
+}
+
+.taldav-calculator-option small {
+    color: #6b7280;
+    display: block;
+    font-size: 14px;
+    line-height: 1.45;
+    margin-top: 2px;
+}
+
+.taldav-calculator-option b {
+    color: #0b9bdc;
+    font-size: 18px;
+}
+
+.taldav-calculator-discount,
+.taldav-calculator-result {
+    align-items: center;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding: 16px 18px;
+}
+
+.taldav-calculator-discount {
+    background: #eef8fd;
+    color: #0b3551;
+}
+
+.taldav-calculator-result {
+    background: #07111f;
+    color: #fff;
+    margin-top: 10px;
+}
+
+.taldav-calculator-result span,
+.taldav-calculator-discount span {
+    color: inherit;
+}
+
+.taldav-calculator-result strong {
+    font-size: 28px;
+}
+
+.taldav-calculator-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.taldav-calculator-primary {
+    background: #0b9bdc;
+    border: 0;
+    border-radius: 0;
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 16px;
+    font-weight: 700;
+    justify-content: center;
+    line-height: 1.2;
+    padding: 16px 28px;
+    text-align: center;
+    text-decoration: none;
+}
+
+.taldav-calculator-primary:hover,
+.taldav-calculator-primary:focus {
+    background: #087fb5;
+    color: #fff;
+}
+
+@media (max-width: 640px) {
+    .taldav-calculator-modal {
+        align-items: flex-end;
+        padding: 12px;
+    }
+
+    .taldav-calculator-dialog {
+        max-height: calc(100vh - 24px);
+        padding: 24px 18px;
+    }
+
+    .taldav-calculator-header h3 {
+        font-size: 25px;
+    }
+
+    .taldav-calculator-option {
+        grid-template-columns: auto 1fr;
+    }
+
+    .taldav-calculator-option b {
+        grid-column: 2;
+    }
+
+    .taldav-calculator-discount,
+    .taldav-calculator-result {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+    }
+}
