@@ -6,6 +6,7 @@ Small site-specific WordPress plugin for the TalDav / WP Care portfolio website.
 
 - Provides the `[taldav_support_calculator]` shortcode.
 - Adds a configurable WordPress support calculator.
+- Lets the site owner edit calculator texts.
 - Lets the site owner add, remove and edit calculator services.
 - Supports a configurable discount rule.
 - Writes calculator output into configured form fields by `name` attribute.
@@ -20,8 +21,19 @@ Open:
 Settings -> TalDav Site Tools
 ```
 
+The settings page is split into two areas:
+
+- main content: calculator texts and service rows;
+- right sidebar: discount, currency and form integration.
+
 Available settings:
 
+- open button text;
+- modal top label;
+- modal title;
+- modal description;
+- total label;
+- apply button text;
 - currency symbol;
 - discount enabled/disabled;
 - discount threshold;

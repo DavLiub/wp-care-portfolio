@@ -34,6 +34,10 @@
         }
     }
 
+    function escapeAttributeValue(value) {
+        return String(value).replace(/\\/g, '\\\\').replace(//g, '\');
+    }
+
     function findField(modal, fieldName) {
         var root = getFieldRoot(modal);
 
@@ -42,7 +46,7 @@
         }
 
         try {
-            return root.querySelector('[name=' + fieldName + ']');
+            return root.querySelector('[name=' + escapeAttributeValue(fieldName) + ']');
         } catch (error) {
             console.warn('TalDav Site Tools: invalid field name', fieldName);
             return null;
