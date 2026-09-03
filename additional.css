@@ -1,0 +1,285 @@
+.contact-footer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .contact-footer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .contact-footer-item .icon,
+  .lets_start .icon {
+    flex: 0 0 auto;
+  }
+
+  .contact-footer-item a,
+  .lets_start a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .contact-footer-item a:hover,
+  .lets_start a:hover {
+    color: var(--dt-pri-color);
+  }
+
+.dt_content_about_info.style1 .contact__list > p {
+    flex: 0 0 auto;
+    margin: 0 20px 0 0;
+    line-height: 1;
+}
+
+.dt_content_about_info.style1 .widget_contact {
+    height: 100%;
+    padding: 24px 18px;
+}
+
+.dt_content_about_info.style1 .contact__list {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.dt_content_about_info.style1 .contact__list > p {
+    flex: 0 0 50px;
+    width: 50px;
+    margin: 0;
+    line-height: 1;
+}
+
+.dt_content_about_info.style1 .contact__list > p i {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    margin: 0;
+    font-size: 24px;
+}
+
+.dt_content_about_info.style1 .contact__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.dt_content_about_info.style1 .contact__body .title {
+    margin: 0 0 7px;
+    font-size: 18px;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+.dt_content_about_info.style1 .contact__body .description {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.pricing-accordion {
+    margin-bottom: 18px;
+    border: 1px solid #dce7f0;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 8px 28px rgba(24, 43, 69, 0.07);
+    overflow: hidden;
+}
+
+.pricing-accordion summary {
+    padding: 25px 28px;
+    color: #182b45;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.pricing-accordion summary:hover {
+    background: #f5fbfe;
+}
+
+.pricing-accordion[open] {
+    border-color: #0798df;
+    box-shadow: 0 12px 34px rgba(7, 152, 223, 0.12);
+}
+
+.pricing-accordion[open] summary {
+    border-bottom: 1px solid #e3edf4;
+    background: #f5fbfe;
+}
+
+.pricing-accordion > :not(summary) {
+    margin-right: 28px;
+    margin-left: 28px;
+}
+
+.pricing-accordion > :last-child {
+    margin-bottom: 28px;
+}
+
+.pricing-eyebrow {
+    margin-bottom: 10px;
+    color: #0798df;
+    font-size: 13px !important;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.wp-care-pricing-title {
+    margin-bottom: 16px;
+    color: #182b45;
+    font-size: 38px;
+    line-height: 1.2;
+}
+
+/* Pricing card note */
+.pricing-accordion .plan-note {
+    position: relative;
+    margin-top: 24px;
+    padding: 15px 18px 15px 46px;
+    border: 1px solid rgba(9, 153, 220, 0.22);
+    border-radius: 12px;
+    background: rgba(9, 153, 220, 0.07);
+    color: #44546a;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.pricing-accordion .plan-note::before {
+    content: "\f05a";
+    position: absolute;
+    top: 17px;
+    left: 18px;
+    color: #0798df;
+    font-family: "Font Awesome 5 Free";
+    font-size: 17px;
+    font-weight: 900;
+}
+
+.pricing-accordion .plan-note p {
+    margin: 0;
+}
+
+.pricing-accordion .plan-note strong {
+    color: #172c49;
+    font-weight: 700;
+}
+
+@media (max-width: 575px) {
+    .pricing-accordion .plan-note {
+        padding: 14px 15px 14px 42px;
+        font-size: 13px;
+    }
+
+    .pricing-accordion .plan-note::before {
+        left: 15px;
+    }
+}
+
+/* Pricing plan lists */
+.pricing-accordion ul.plan-list {
+    display: grid !important;
+    gap: 10px !important;
+    margin: 18px 28px 28px !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+
+.pricing-accordion ul.plan-list > li {
+    position: relative !important;
+    margin: 0 !important;
+    padding: 1px 0 1px 35px !important;
+    list-style: none !important;
+    color: #44546a;
+    font-size: 16px;
+    line-height: 1.55;
+}
+
+.pricing-accordion ul.plan-list > li::marker {
+    content: "" !important;
+}
+
+/* Included: blue check */
+.pricing-accordion ul.plan-list-included > li::before {
+    content: "✓";
+    position: absolute;
+    top: 2px;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 23px;
+    height: 23px;
+    border-radius: 50%;
+    background: rgba(7, 152, 223, 0.12);
+    color: #0798df;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* Excluded: neutral minus */
+.pricing-accordion ul.plan-list-excluded > li::before {
+    content: "−";
+    position: absolute;
+    top: 2px;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 23px;
+    height: 23px;
+    border-radius: 50%;
+    background: #e9eef3;
+    color: #667386;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.pricing-accordion ul.plan-list-excluded > li {
+    color: #667386;
+}
+
+@media (max-width: 575px) {
+    .pricing-accordion ul.plan-list {
+        gap: 9px !important;
+        margin: 16px 14px 24px !important;
+    }
+
+    .pricing-accordion ul.plan-list > li {
+        padding-left: 31px !important;
+        font-size: 15px;
+    }
+
+    .pricing-accordion ul.plan-list > li::before {
+        width: 21px;
+        height: 21px;
+        font-size: 12px;
+    }
+}
+
+.pricing-accordion .builder-link {
+    margin-top: 24px;
+}
+
+.pricing-accordion .builder-link a {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-radius: 8px;
+    background: #0798df;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.pricing-accordion .builder-link a:hover {
+    background: #087fba;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
