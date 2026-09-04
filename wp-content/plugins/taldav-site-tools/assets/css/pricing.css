@@ -222,3 +222,14 @@ html.taldav-calculator-open {
         gap: 6px;
     }
 }
+
+.taldav-calculator-choice-group + .taldav-calculator-choice-group {
+    margin-top: 20px;
+}
+
+.taldav-calculator-section-title {
+    color: #111827;
+    font-size: 18px;
+    line-height: 1.35;
+    margin: 0 0 12px;
+}

@@ -34,10 +34,6 @@
         }
     }
 
-    function escapeAttributeValue(value) {
-        return String(value).replace(/\\/g, '\\\\').replace(//g, '\');
-    }
-
     function findField(modal, fieldName) {
         var root = getFieldRoot(modal);
 
@@ -45,12 +41,9 @@
             return null;
         }
 
-        try {
-            return root.querySelector('[name=' + escapeAttributeValue(fieldName) + ']');
-        } catch (error) {
-            console.warn('TalDav Site Tools: invalid field name', fieldName);
-            return null;
-        }
+        return Array.prototype.slice.call(root.querySelectorAll('[name]')).find(function (field) {
+            return field.getAttribute('name') === fieldName;
+        }) || null;
     }
 
     function updateSelectedStyles(modal) {
@@ -60,12 +53,16 @@
         });
     }
 
+    function selectedInputs(modal) {
+        return Array.prototype.slice.call(modal.querySelectorAll('input[data-price]:checked'));
+    }
+
     function calculate(modal) {
         var currency = modal.getAttribute('data-currency') || '$';
         var discountEnabled = modal.getAttribute('data-discount-enabled') === '1';
         var discountMinTotal = numberFromData(modal, 'data-discount-min-total', 0);
         var discountPercent = numberFromData(modal, 'data-discount-percent', 0);
-        var checked = Array.prototype.slice.call(modal.querySelectorAll('input[data-price]:checked'));
+        var checked = selectedInputs(modal);
         var subtotal = checked.reduce(function (sum, input) {
             return sum + Number(input.getAttribute('data-price') || 0);
         }, 0);

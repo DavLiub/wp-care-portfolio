@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TalDav Site Tools
  * Description: Site-specific functionality and assets for the TalDav / WP Care portfolio website.
- * Version: 0.4.0
+ * Version: 0.5.0
  * Author: TalDav Web Care
  * Text Domain: taldav-site-tools
  */
@@ -11,36 +11,23 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('TALDAV_SITE_TOOLS_VERSION', '0.4.0');
+define('TALDAV_SITE_TOOLS_VERSION', '0.5.0');
 define('TALDAV_SITE_TOOLS_DIR', plugin_dir_path(__FILE__));
 define('TALDAV_SITE_TOOLS_URL', plugin_dir_url(__FILE__));
 
 function taldav_site_tools_default_services() {
     return array(
-        array(
-            'label' => 'Content updates',
-            'description' => 'Text, images, pages and small content changes.',
-            'price' => 120,
-            'checked' => 1,
-        ),
-        array(
-            'label' => 'Plugin and theme checks',
-            'description' => 'Regular checks before updates and visible issues.',
-            'price' => 90,
-            'checked' => 1,
-        ),
-        array(
-            'label' => 'Backups review',
-            'description' => 'Check that files and database backups are in place.',
-            'price' => 70,
-            'checked' => 1,
-        ),
-        array(
-            'label' => 'Small technical fixes',
-            'description' => 'Minor layout fixes, settings checks and simple troubleshooting.',
-            'price' => 110,
-            'checked' => 0,
-        ),
+        array('label' => 'Content updates', 'description' => 'Text, images, pages and small content changes.', 'price' => 120, 'checked' => 1),
+        array('label' => 'Plugin and theme checks', 'description' => 'Regular checks before updates and visible issues.', 'price' => 90, 'checked' => 1),
+        array('label' => 'Backups review', 'description' => 'Check that files and database backups are in place.', 'price' => 70, 'checked' => 1),
+        array('label' => 'Small technical fixes', 'description' => 'Minor layout fixes, settings checks and simple troubleshooting.', 'price' => 110, 'checked' => 0),
+    );
+}
+
+function taldav_site_tools_default_radio_options() {
+    return array(
+        array('label' => 'One-time request', 'description' => 'A single task or a small batch of fixes.', 'price' => 0, 'default' => 1),
+        array('label' => 'Monthly support', 'description' => 'Ongoing help with recurring updates and small changes.', 'price' => 0, 'default' => 0),
     );
 }
 
@@ -60,23 +47,26 @@ function taldav_site_tools_default_options() {
         'form_selector' => '',
         'price_field_name' => 'estimated_monthly_price',
         'services_field_name' => 'selected_custom_services',
+        'radio_enabled' => 1,
+        'radio_title' => 'Support format',
         'services' => taldav_site_tools_default_services(),
+        'radio_options' => taldav_site_tools_default_radio_options(),
     );
 }
 
-function taldav_site_tools_normalize_services($services) {
-    if (!is_array($services) || empty($services)) {
-        return taldav_site_tools_default_services();
+function taldav_site_tools_normalize_checkbox_items($items, $defaults) {
+    if (!is_array($items) || empty($items)) {
+        return $defaults;
     }
 
     $normalized = array();
 
-    foreach ($services as $service) {
-        if (!is_array($service)) {
+    foreach ($items as $item) {
+        if (!is_array($item)) {
             continue;
         }
 
-        $label = isset($service['label']) ? trim((string) $service['label']) : '';
+        $label = isset($item['label']) ? trim((string) $item['label']) : '';
 
         if ($label === '') {
             continue;
@@ -84,13 +74,61 @@ function taldav_site_tools_normalize_services($services) {
 
         $normalized[] = array(
             'label' => $label,
-            'description' => isset($service['description']) ? (string) $service['description'] : '',
-            'price' => isset($service['price']) ? max(0, (float) $service['price']) : 0,
-            'checked' => empty($service['checked']) ? 0 : 1,
+            'description' => isset($item['description']) ? (string) $item['description'] : '',
+            'price' => isset($item['price']) ? max(0, (float) $item['price']) : 0,
+            'checked' => empty($item['checked']) ? 0 : 1,
         );
     }
 
-    return !empty($normalized) ? $normalized : taldav_site_tools_default_services();
+    return !empty($normalized) ? $normalized : $defaults;
+}
+
+function taldav_site_tools_normalize_radio_options($items, $defaults, $default_index = null) {
+    if (!is_array($items) || empty($items)) {
+        return $defaults;
+    }
+
+    $normalized = array();
+    $position = 0;
+
+    foreach ($items as $key => $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+
+        $label = isset($item['label']) ? trim((string) $item['label']) : '';
+
+        if ($label === '') {
+            continue;
+        }
+
+        $normalized[] = array(
+            'label' => $label,
+            'description' => isset($item['description']) ? (string) $item['description'] : '',
+            'price' => isset($item['price']) ? max(0, (float) $item['price']) : 0,
+            'default' => ((string) $default_index === (string) $key || (!empty($item['default']) && $default_index === null)) ? 1 : 0,
+        );
+
+        $position++;
+    }
+
+    if (empty($normalized)) {
+        return $defaults;
+    }
+
+    $has_default = false;
+    foreach ($normalized as $item) {
+        if (!empty($item['default'])) {
+            $has_default = true;
+            break;
+        }
+    }
+
+    if (!$has_default) {
+        $normalized[0]['default'] = 1;
+    }
+
+    return $normalized;
 }
 
 function taldav_site_tools_get_options() {
@@ -102,7 +140,8 @@ function taldav_site_tools_get_options() {
     }
 
     $options = wp_parse_args($saved, $defaults);
-    $options['services'] = isset($saved['services']) ? taldav_site_tools_normalize_services($saved['services']) : $defaults['services'];
+    $options['services'] = taldav_site_tools_normalize_checkbox_items($saved['services'] ?? array(), $defaults['services']);
+    $options['radio_options'] = taldav_site_tools_normalize_radio_options($saved['radio_options'] ?? array(), $defaults['radio_options']);
 
     return $options;
 }
@@ -126,38 +165,43 @@ function taldav_site_tools_sanitize_options($input) {
         'form_selector' => isset($input['form_selector']) ? sanitize_text_field($input['form_selector']) : '',
         'price_field_name' => isset($input['price_field_name']) ? sanitize_text_field($input['price_field_name']) : $defaults['price_field_name'],
         'services_field_name' => isset($input['services_field_name']) ? sanitize_text_field($input['services_field_name']) : $defaults['services_field_name'],
-        'services' => taldav_site_tools_normalize_services($input['services'] ?? array()),
+        'radio_enabled' => empty($input['radio_enabled']) ? 0 : 1,
+        'radio_title' => isset($input['radio_title']) ? sanitize_text_field($input['radio_title']) : $defaults['radio_title'],
+        'services' => taldav_site_tools_normalize_checkbox_items($input['services'] ?? array(), $defaults['services']),
+        'radio_options' => taldav_site_tools_normalize_radio_options($input['radio_options'] ?? array(), $defaults['radio_options'], $input['radio_default'] ?? null),
     );
 }
 
 function taldav_site_tools_admin_menu() {
-    add_options_page(
-        'TalDav Site Tools',
-        'TalDav Site Tools',
-        'manage_options',
-        'taldav-site-tools',
-        'taldav_site_tools_render_settings_page'
-    );
+    add_options_page('TalDav Site Tools', 'TalDav Site Tools', 'manage_options', 'taldav-site-tools', 'taldav_site_tools_render_settings_page');
 }
 add_action('admin_menu', 'taldav_site_tools_admin_menu');
 
 function taldav_site_tools_register_settings() {
-    register_setting(
-        'taldav_site_tools_settings',
-        'taldav_site_tools_options',
-        array('sanitize_callback' => 'taldav_site_tools_sanitize_options')
-    );
+    register_setting('taldav_site_tools_settings', 'taldav_site_tools_options', array('sanitize_callback' => 'taldav_site_tools_sanitize_options'));
 }
 add_action('admin_init', 'taldav_site_tools_register_settings');
 
 function taldav_site_tools_render_service_row($index, $service) {
     ?>
-    <tr class=taldav-service-row>
-        <td><input name=taldav_site_tools_options[services][<?php echo esc_attr($index); ?>][checked] type=checkbox value=1 <?php checked($service['checked'], 1); ?>></td>
-        <td><input name=taldav_site_tools_options[services][<?php echo esc_attr($index); ?>][label] type=text value=<?php echo esc_attr($service['label']); ?> class=regular-text></td>
-        <td><input name=taldav_site_tools_options[services][<?php echo esc_attr($index); ?>][description] type=text value=<?php echo esc_attr($service['description']); ?> class=large-text></td>
-        <td><input name=taldav_site_tools_options[services][<?php echo esc_attr($index); ?>][price] type=number min=0 step=1 value=<?php echo esc_attr($service['price']); ?> class=small-text></td>
-        <td><button type=button class=button taldav-remove-service>Remove</button></td>
+    <tr class="taldav-service-row">
+        <td><input name="taldav_site_tools_options[services][<?php echo esc_attr($index); ?>][checked]" type="checkbox" value="1" <?php checked($service['checked'], 1); ?>></td>
+        <td><input name="taldav_site_tools_options[services][<?php echo esc_attr($index); ?>][label]" type="text" value="<?php echo esc_attr($service['label']); ?>" class="regular-text"></td>
+        <td><input name="taldav_site_tools_options[services][<?php echo esc_attr($index); ?>][description]" type="text" value="<?php echo esc_attr($service['description']); ?>" class="large-text"></td>
+        <td><input name="taldav_site_tools_options[services][<?php echo esc_attr($index); ?>][price]" type="number" min="0" step="1" value="<?php echo esc_attr($service['price']); ?>" class="small-text"></td>
+        <td><button type="button" class="button taldav-remove-row">Remove</button></td>
+    </tr>
+    <?php
+}
+
+function taldav_site_tools_render_radio_row($index, $item) {
+    ?>
+    <tr class="taldav-radio-row">
+        <td><input name="taldav_site_tools_options[radio_default]" type="radio" value="<?php echo esc_attr($index); ?>" <?php checked($item['default'], 1); ?>></td>
+        <td><input name="taldav_site_tools_options[radio_options][<?php echo esc_attr($index); ?>][label]" type="text" value="<?php echo esc_attr($item['label']); ?>" class="regular-text"></td>
+        <td><input name="taldav_site_tools_options[radio_options][<?php echo esc_attr($index); ?>][description]" type="text" value="<?php echo esc_attr($item['description']); ?>" class="large-text"></td>
+        <td><input name="taldav_site_tools_options[radio_options][<?php echo esc_attr($index); ?>][price]" type="number" min="0" step="1" value="<?php echo esc_attr($item['price']); ?>" class="small-text"></td>
+        <td><button type="button" class="button taldav-remove-row">Remove</button></td>
     </tr>
     <?php
 }
@@ -169,7 +213,7 @@ function taldav_site_tools_render_settings_page() {
 
     $options = taldav_site_tools_get_options();
     ?>
-    <div class=wrap taldav-settings-page>
+    <div class="wrap taldav-settings-page">
         <h1>TalDav Site Tools</h1>
         <p>Settings for the custom pricing calculator built specifically for this portfolio website.</p>
 
@@ -179,153 +223,106 @@ function taldav_site_tools_render_settings_page() {
             .taldav-settings-card h2:first-child { margin-top: 0; }
             .taldav-settings-card textarea.large-text { min-height: 96px; }
             .taldav-settings-sidebar { align-self: start; position: sticky; top: 42px; }
-            #taldav-services-table input.regular-text, #taldav-services-table input.large-text { width: 100%; }
+            .taldav-settings-sidebar input.regular-text, .taldav-settings-sidebar input[type=text], .taldav-settings-sidebar input[type=number] { box-sizing: border-box; max-width: 100%; width: 100%; }
+            .taldav-settings-sidebar input.small-text { max-width: 96px; width: 96px; }
+            .taldav-items-table input.regular-text, .taldav-items-table input.large-text { width: 100%; }
             @media (max-width: 1100px) { .taldav-settings-layout { grid-template-columns: 1fr; } .taldav-settings-sidebar { position: static; } }
         </style>
 
-        <form method=post action=options.php>
+        <form method="post" action="options.php">
             <?php settings_fields('taldav_site_tools_settings'); ?>
 
-            <div class=taldav-settings-layout>
-                <div class=taldav-settings-main>
-                    <div class=taldav-settings-card>
+            <div class="taldav-settings-layout">
+                <div class="taldav-settings-main">
+                    <div class="taldav-settings-card">
                         <h2>Calculator Text</h2>
-                        <table class=form-table role=presentation>
-                            <tr>
-                                <th scope=row><label for=taldav_open_button_text>Open Button Text</label></th>
-                                <td><input id=taldav_open_button_text name=taldav_site_tools_options[open_button_text] type=text value=<?php echo esc_attr($options['open_button_text']); ?> class=regular-text></td>
-                            </tr>
-                            <tr>
-                                <th scope=row><label for=taldav_modal_kicker>Top Label</label></th>
-                                <td><input id=taldav_modal_kicker name=taldav_site_tools_options[modal_kicker] type=text value=<?php echo esc_attr($options['modal_kicker']); ?> class=regular-text></td>
-                            </tr>
-                            <tr>
-                                <th scope=row><label for=taldav_modal_title>Modal Title</label></th>
-                                <td><input id=taldav_modal_title name=taldav_site_tools_options[modal_title] type=text value=<?php echo esc_attr($options['modal_title']); ?> class=large-text></td>
-                            </tr>
-                            <tr>
-                                <th scope=row><label for=taldav_modal_description>Modal Description</label></th>
-                                <td><textarea id=taldav_modal_description name=taldav_site_tools_options[modal_description] class=large-text><?php echo esc_textarea($options['modal_description']); ?></textarea></td>
-                            </tr>
-                            <tr>
-                                <th scope=row><label for=taldav_total_label>Total Label</label></th>
-                                <td><input id=taldav_total_label name=taldav_site_tools_options[total_label] type=text value=<?php echo esc_attr($options['total_label']); ?> class=regular-text></td>
-                            </tr>
-                            <tr>
-                                <th scope=row><label for=taldav_apply_button_text>Apply Button Text</label></th>
-                                <td><input id=taldav_apply_button_text name=taldav_site_tools_options[apply_button_text] type=text value=<?php echo esc_attr($options['apply_button_text']); ?> class=regular-text></td>
-                            </tr>
+                        <table class="form-table" role="presentation">
+                            <tr><th scope="row"><label for="taldav_open_button_text">Open Button Text</label></th><td><input id="taldav_open_button_text" name="taldav_site_tools_options[open_button_text]" type="text" value="<?php echo esc_attr($options['open_button_text']); ?>" class="regular-text"></td></tr>
+                            <tr><th scope="row"><label for="taldav_modal_kicker">Top Label</label></th><td><input id="taldav_modal_kicker" name="taldav_site_tools_options[modal_kicker]" type="text" value="<?php echo esc_attr($options['modal_kicker']); ?>" class="regular-text"></td></tr>
+                            <tr><th scope="row"><label for="taldav_modal_title">Modal Title</label></th><td><input id="taldav_modal_title" name="taldav_site_tools_options[modal_title]" type="text" value="<?php echo esc_attr($options['modal_title']); ?>" class="large-text"></td></tr>
+                            <tr><th scope="row"><label for="taldav_modal_description">Modal Description</label></th><td><textarea id="taldav_modal_description" name="taldav_site_tools_options[modal_description]" class="large-text"><?php echo esc_textarea($options['modal_description']); ?></textarea></td></tr>
+                            <tr><th scope="row"><label for="taldav_total_label">Total Label</label></th><td><input id="taldav_total_label" name="taldav_site_tools_options[total_label]" type="text" value="<?php echo esc_attr($options['total_label']); ?>" class="regular-text"></td></tr>
+                            <tr><th scope="row"><label for="taldav_apply_button_text">Apply Button Text</label></th><td><input id="taldav_apply_button_text" name="taldav_site_tools_options[apply_button_text]" type="text" value="<?php echo esc_attr($options['apply_button_text']); ?>" class="regular-text"></td></tr>
                         </table>
                     </div>
 
-                    <div class=taldav-settings-card style=margin-top: 24px;>
-                        <h2>Calculator Services</h2>
-                        <p>Add, remove and edit the service items displayed in the calculator.</p>
-                        <table class=widefat striped id=taldav-services-table>
-                            <thead>
-                                <tr>
-                                    <th>Default</th>
-                                    <th>Label</th>
-                                    <th>Description</th>
-                                    <th>Monthly Price</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($options['services'] as $index => $service) : ?>
-                                    <?php taldav_site_tools_render_service_row($index, $service); ?>
-                                <?php endforeach; ?>
-                            </tbody>
+                    <div class="taldav-settings-card" style="margin-top: 24px;">
+                        <h2>Radio Options</h2>
+                        <p>A single-choice group. Use it for a support format, urgency level, website size, or another mutually exclusive choice.</p>
+                        <p><label><input name="taldav_site_tools_options[radio_enabled]" type="checkbox" value="1" <?php checked($options['radio_enabled'], 1); ?>> Enable radio group</label></p>
+                        <p><label for="taldav_radio_title"><strong>Group Title</strong></label><br><input id="taldav_radio_title" name="taldav_site_tools_options[radio_title]" type="text" value="<?php echo esc_attr($options['radio_title']); ?>" class="regular-text"></p>
+                        <table class="widefat striped taldav-items-table" id="taldav-radio-table">
+                            <thead><tr><th>Default</th><th>Label</th><th>Description</th><th>Monthly Price</th><th></th></tr></thead>
+                            <tbody><?php foreach ($options['radio_options'] as $index => $item) : taldav_site_tools_render_radio_row($index, $item); endforeach; ?></tbody>
                         </table>
-
-                        <p><button type=button class=button button-secondary id=taldav-add-service>Add Service</button></p>
+                        <p><button type="button" class="button button-secondary" id="taldav-add-radio">Add Radio Option</button></p>
                     </div>
+                    <div class="taldav-settings-card" style="margin-top: 24px;">
+                        <h2>Checkbox Services</h2>
+                        <p>Optional services. The visitor can select several items.</p>
+                        <table class="widefat striped taldav-items-table" id="taldav-services-table">
+                            <thead><tr><th>Default</th><th>Label</th><th>Description</th><th>Monthly Price</th><th></th></tr></thead>
+                            <tbody><?php foreach ($options['services'] as $index => $service) : taldav_site_tools_render_service_row($index, $service); endforeach; ?></tbody>
+                        </table>
+                        <p><button type="button" class="button button-secondary" id="taldav-add-service">Add Service</button></p>
+                    </div>
+
+
                 </div>
-
-                <div class=taldav-settings-sidebar>
-                    <div class=taldav-settings-card>
+                <div class="taldav-settings-sidebar">
+                    <div class="taldav-settings-card">
                         <h2>Discount</h2>
-                        <p>
-                            <label>
-                                <input name=taldav_site_tools_options[discount_enabled] type=checkbox value=1 <?php checked($options['discount_enabled'], 1); ?>>
-                                Enable discount
-                            </label>
-                        </p>
-                        <p>
-                            <label for=taldav_discount_label><strong>Discount Label</strong></label><br>
-                            <input id=taldav_discount_label name=taldav_site_tools_options[discount_label] type=text value=<?php echo esc_attr($options['discount_label']); ?> class=regular-text>
-                        </p>
-                        <p>
-                            <label for=taldav_discount_min_total><strong>Apply From</strong></label><br>
-                            <input id=taldav_discount_min_total name=taldav_site_tools_options[discount_min_total] type=number min=0 step=1 value=<?php echo esc_attr($options['discount_min_total']); ?> class=small-text>
-                        </p>
-                        <p>
-                            <label for=taldav_discount_percent><strong>Discount Percent</strong></label><br>
-                            <input id=taldav_discount_percent name=taldav_site_tools_options[discount_percent] type=number min=0 max=100 step=1 value=<?php echo esc_attr($options['discount_percent']); ?> class=small-text>%
-                        </p>
+                        <p><label><input name="taldav_site_tools_options[discount_enabled]" type="checkbox" value="1" <?php checked($options['discount_enabled'], 1); ?>> Enable discount</label></p>
+                        <p><label for="taldav_discount_label"><strong>Discount Label</strong></label><br><input id="taldav_discount_label" name="taldav_site_tools_options[discount_label]" type="text" value="<?php echo esc_attr($options['discount_label']); ?>" class="regular-text"></p>
+                        <p><label for="taldav_discount_min_total"><strong>Apply From</strong></label><br><input id="taldav_discount_min_total" name="taldav_site_tools_options[discount_min_total]" type="number" min="0" step="1" value="<?php echo esc_attr($options['discount_min_total']); ?>" class="small-text"></p>
+                        <p><label for="taldav_discount_percent"><strong>Discount Percent</strong></label><br><input id="taldav_discount_percent" name="taldav_site_tools_options[discount_percent]" type="number" min="0" max="100" step="1" value="<?php echo esc_attr($options['discount_percent']); ?>" class="small-text">%</p>
                     </div>
 
-                    <div class=taldav-settings-card style=margin-top: 24px;>
+                    <div class="taldav-settings-card" style="margin-top: 24px;">
                         <h2>Form Integration</h2>
                         <p>The calculator writes values into form fields by their <code>name</code> attribute.</p>
-                        <p>
-                            <label for=taldav_currency><strong>Currency Symbol</strong></label><br>
-                            <input id=taldav_currency name=taldav_site_tools_options[currency] type=text value=<?php echo esc_attr($options['currency']); ?> class=small-text>
-                        </p>
-                        <p>
-                            <label for=taldav_form_selector><strong>Optional Form CSS Selector</strong></label><br>
-                            <input id=taldav_form_selector name=taldav_site_tools_options[form_selector] type=text value=<?php echo esc_attr($options['form_selector']); ?> class=regular-text placeholder=.fluent_form_5>
-                        </p>
-                        <p>
-                            <label for=taldav_price_field_name><strong>Price Field Name</strong></label><br>
-                            <input id=taldav_price_field_name name=taldav_site_tools_options[price_field_name] type=text value=<?php echo esc_attr($options['price_field_name']); ?> class=regular-text>
-                        </p>
-                        <p>
-                            <label for=taldav_services_field_name><strong>Services Field Name</strong></label><br>
-                            <input id=taldav_services_field_name name=taldav_site_tools_options[services_field_name] type=text value=<?php echo esc_attr($options['services_field_name']); ?> class=regular-text>
-                        </p>
+                        <p><label for="taldav_currency"><strong>Currency Symbol</strong></label><br><input id="taldav_currency" name="taldav_site_tools_options[currency]" type="text" value="<?php echo esc_attr($options['currency']); ?>" class="small-text"></p>
+                        <p><label for="taldav_form_selector"><strong>Optional Form CSS Selector</strong></label><br><input id="taldav_form_selector" name="taldav_site_tools_options[form_selector]" type="text" value="<?php echo esc_attr($options['form_selector']); ?>" class="regular-text" placeholder=".fluent_form_5"></p>
+                        <p><label for="taldav_price_field_name"><strong>Price Field Name</strong></label><br><input id="taldav_price_field_name" name="taldav_site_tools_options[price_field_name]" type="text" value="<?php echo esc_attr($options['price_field_name']); ?>" class="regular-text"></p>
+                        <p><label for="taldav_services_field_name"><strong>Services Field Name</strong></label><br><input id="taldav_services_field_name" name="taldav_site_tools_options[services_field_name]" type="text" value="<?php echo esc_attr($options['services_field_name']); ?>" class="regular-text"></p>
                     </div>
 
                     <?php submit_button(); ?>
                 </div>
             </div>
 
-            <template id=taldav-service-row-template>
-                <tr class=taldav-service-row>
-                    <td><input name=taldav_site_tools_options[services][__INDEX__][checked] type=checkbox value=1></td>
-                    <td><input name=taldav_site_tools_options[services][__INDEX__][label] type=text value=" class=regular-text></td>
-                    <td><input name=taldav_site_tools_options[services][__INDEX__][description] type=text value=" class=large-text></td>
-                    <td><input name=taldav_site_tools_options[services][__INDEX__][price] type=number min=0 step=1 value=0 class=small-text></td>
-                    <td><button type=button class=button taldav-remove-service>Remove</button></td>
-                </tr>
-            </template>
-
+            <template id="taldav-service-row-template"><tr class="taldav-service-row"><td><input name="taldav_site_tools_options[services][__INDEX__][checked]" type="checkbox" value="1"></td><td><input name="taldav_site_tools_options[services][__INDEX__][label]" type="text" value="" class="regular-text"></td><td><input name="taldav_site_tools_options[services][__INDEX__][description]" type="text" value="" class="large-text"></td><td><input name="taldav_site_tools_options[services][__INDEX__][price]" type="number" min="0" step="1" value="0" class="small-text"></td><td><button type="button" class="button taldav-remove-row">Remove</button></td></tr></template>
+            <template id="taldav-radio-row-template"><tr class="taldav-radio-row"><td><input name="taldav_site_tools_options[radio_default]" type="radio" value="__INDEX__"></td><td><input name="taldav_site_tools_options[radio_options][__INDEX__][label]" type="text" value="" class="regular-text"></td><td><input name="taldav_site_tools_options[radio_options][__INDEX__][description]" type="text" value="" class="large-text"></td><td><input name="taldav_site_tools_options[radio_options][__INDEX__][price]" type="number" min="0" step="1" value="0" class="small-text"></td><td><button type="button" class="button taldav-remove-row">Remove</button></td></tr></template>
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
-                    var tableBody = document.querySelector('#taldav-services-table tbody');
-                    var addButton = document.getElementById('taldav-add-service');
-                    var template = document.getElementById('taldav-service-row-template');
+                    function setupRows(tableId, buttonId, templateId) {
+                        var tableBody = document.querySelector('#' + tableId + ' tbody');
+                        var addButton = document.getElementById(buttonId);
+                        var template = document.getElementById(templateId);
 
-                    if (!tableBody || !addButton || !template) {
-                        return;
-                    }
-
-                    addButton.addEventListener('click', function () {
-                        var index = 'new_' + Date.now();
-                        var html = template.innerHTML.replaceAll('__INDEX__', index);
-                        tableBody.insertAdjacentHTML('beforeend', html);
-                    });
-
-                    tableBody.addEventListener('click', function (event) {
-                        var button = event.target.closest('.taldav-remove-service');
-
-                        if (!button) {
+                        if (!tableBody || !addButton || !template) {
                             return;
                         }
 
-                        event.preventDefault();
-                        button.closest('tr').remove();
-                    });
+                        addButton.addEventListener('click', function () {
+                            var index = 'new_' + Date.now();
+                            tableBody.insertAdjacentHTML('beforeend', template.innerHTML.replaceAll('__INDEX__', index));
+                        });
+
+                        tableBody.addEventListener('click', function (event) {
+                            var button = event.target.closest('.taldav-remove-row');
+
+                            if (!button) {
+                                return;
+                            }
+
+                            event.preventDefault();
+                            button.closest('tr').remove();
+                        });
+                    }
+
+                    setupRows('taldav-services-table', 'taldav-add-service', 'taldav-service-row-template');
+                    setupRows('taldav-radio-table', 'taldav-add-radio', 'taldav-radio-row-template');
                 });
             </script>
         </form>
@@ -335,29 +332,12 @@ function taldav_site_tools_render_settings_page() {
 
 function taldav_site_tools_asset_version($relative_path) {
     $file_path = TALDAV_SITE_TOOLS_DIR . $relative_path;
-
-    if (file_exists($file_path)) {
-        return (string) filemtime($file_path);
-    }
-
-    return TALDAV_SITE_TOOLS_VERSION;
+    return file_exists($file_path) ? (string) filemtime($file_path) : TALDAV_SITE_TOOLS_VERSION;
 }
 
 function taldav_site_tools_register_assets() {
-    wp_register_style(
-        'taldav-pricing',
-        TALDAV_SITE_TOOLS_URL . 'assets/css/pricing.css',
-        array(),
-        taldav_site_tools_asset_version('assets/css/pricing.css')
-    );
-
-    wp_register_script(
-        'taldav-support-calculator',
-        TALDAV_SITE_TOOLS_URL . 'assets/js/support-calculator.js',
-        array(),
-        taldav_site_tools_asset_version('assets/js/support-calculator.js'),
-        true
-    );
+    wp_register_style('taldav-pricing', TALDAV_SITE_TOOLS_URL . 'assets/css/pricing.css', array(), taldav_site_tools_asset_version('assets/css/pricing.css'));
+    wp_register_script('taldav-support-calculator', TALDAV_SITE_TOOLS_URL . 'assets/js/support-calculator.js', array(), taldav_site_tools_asset_version('assets/js/support-calculator.js'), true);
 }
 add_action('wp_enqueue_scripts', 'taldav_site_tools_register_assets');
 
@@ -377,46 +357,51 @@ function taldav_site_tools_support_calculator_shortcode() {
 
     ob_start();
     ?>
-    <div class=taldav-calculator-block>
-        <button type=button id=taldav-open-calculator class=taldav-calculator-primary><?php echo esc_html($options['open_button_text']); ?></button>
+    <div class="taldav-calculator-block">
+        <button type="button" id="taldav-open-calculator" class="taldav-calculator-primary"><?php echo esc_html($options['open_button_text']); ?></button>
 
         <div id="taldav-support-calculator" class="taldav-calculator-modal" hidden data-currency="<?php echo esc_attr($options['currency']); ?>" data-discount-enabled="<?php echo esc_attr($options['discount_enabled']); ?>" data-discount-min-total="<?php echo esc_attr($options['discount_min_total']); ?>" data-discount-percent="<?php echo esc_attr($options['discount_percent']); ?>" data-form-selector="<?php echo esc_attr($options['form_selector']); ?>" data-price-field-name="<?php echo esc_attr($options['price_field_name']); ?>" data-services-field-name="<?php echo esc_attr($options['services_field_name']); ?>">
-            <div class=taldav-calculator-backdrop data-taldav-calculator-close></div>
-            <div class=taldav-calculator-dialog role=dialog aria-modal=true aria-labelledby=taldav-calculator-title>
-                <button type=button class=taldav-calculator-close aria-label=Close calculator data-taldav-calculator-close>&times;</button>
+            <div class="taldav-calculator-backdrop" data-taldav-calculator-close></div>
+            <div class="taldav-calculator-dialog" role="dialog" aria-modal="true" aria-labelledby="taldav-calculator-title">
+                <button type="button" class="taldav-calculator-close" aria-label="Close calculator" data-taldav-calculator-close>&times;</button>
 
-                <div class=taldav-calculator-header>
-                    <p class=taldav-calculator-kicker><?php echo esc_html($options['modal_kicker']); ?></p>
-                    <h3 id=taldav-calculator-title><?php echo esc_html($options['modal_title']); ?></h3>
+                <div class="taldav-calculator-header">
+                    <p class="taldav-calculator-kicker"><?php echo esc_html($options['modal_kicker']); ?></p>
+                    <h3 id="taldav-calculator-title"><?php echo esc_html($options['modal_title']); ?></h3>
                     <p><?php echo esc_html($options['modal_description']); ?></p>
                 </div>
 
-                <div class=taldav-calculator-options>
-                    <?php foreach ($options['services'] as $service) : ?>
-                        <label class=taldav-calculator-option>
-                            <input type="checkbox" data-price="<?php echo esc_attr($service['price']); ?>" data-label="<?php echo esc_attr($service['label']); ?>" <?php checked($service['checked'], 1); ?>>
-                            <span>
-                                <strong><?php echo esc_html($service['label']); ?></strong>
-                                <small><?php echo esc_html($service['description']); ?></small>
-                            </span>
-                            <b><?php echo esc_html($options['currency']); ?><?php echo esc_html(number_format_i18n((float) $service['price'], 0)); ?></b>
-                        </label>
-                    <?php endforeach; ?>
+                <?php if (!empty($options['radio_enabled']) && !empty($options['radio_options'])) : ?>
+                    <div class="taldav-calculator-choice-group">
+                        <h4 class="taldav-calculator-section-title"><?php echo esc_html($options['radio_title']); ?></h4>
+                        <div class="taldav-calculator-options">
+                            <?php foreach ($options['radio_options'] as $index => $item) : ?>
+                                <label class="taldav-calculator-option">
+                                    <input type="radio" name="taldav_calculator_radio" data-price="<?php echo esc_attr($item['price']); ?>" data-label="<?php echo esc_attr($item['label']); ?>" <?php checked($item['default'], 1); ?>>
+                                    <span><strong><?php echo esc_html($item['label']); ?></strong><small><?php echo esc_html($item['description']); ?></small></span>
+                                    <b><?php echo esc_html($options['currency']); ?><?php echo esc_html(number_format_i18n((float) $item['price'], 0)); ?></b>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <div class="taldav-calculator-choice-group">
+                    <h4 class="taldav-calculator-section-title">Services</h4>
+                    <div class="taldav-calculator-options">
+                        <?php foreach ($options['services'] as $service) : ?>
+                            <label class="taldav-calculator-option">
+                                <input type="checkbox" data-price="<?php echo esc_attr($service['price']); ?>" data-label="<?php echo esc_attr($service['label']); ?>" <?php checked($service['checked'], 1); ?>>
+                                <span><strong><?php echo esc_html($service['label']); ?></strong><small><?php echo esc_html($service['description']); ?></small></span>
+                                <b><?php echo esc_html($options['currency']); ?><?php echo esc_html(number_format_i18n((float) $service['price'], 0)); ?></b>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
 
-                <div class=taldav-calculator-discount data-taldav-discount-row hidden>
-                    <span><?php echo esc_html($options['discount_label']); ?></span>
-                    <strong data-taldav-discount>0</strong>
-                </div>
-
-                <div class=taldav-calculator-result>
-                    <span><?php echo esc_html($options['total_label']); ?></span>
-                    <strong><span data-taldav-total>0</span></strong>
-                </div>
-
-                <div class=taldav-calculator-actions>
-                    <button type=button class=taldav-calculator-primary data-taldav-apply-estimate><?php echo esc_html($options['apply_button_text']); ?></button>
-                </div>
+                <div class="taldav-calculator-discount" data-taldav-discount-row hidden><span><?php echo esc_html($options['discount_label']); ?></span><strong data-taldav-discount>0</strong></div>
+                <div class="taldav-calculator-result"><span><?php echo esc_html($options['total_label']); ?></span><strong><span data-taldav-total>0</span></strong></div>
+                <div class="taldav-calculator-actions"><button type="button" class="taldav-calculator-primary" data-taldav-apply-estimate><?php echo esc_html($options['apply_button_text']); ?></button></div>
             </div>
         </div>
     </div>
@@ -425,28 +410,3 @@ function taldav_site_tools_support_calculator_shortcode() {
     return ob_get_clean();
 }
 add_shortcode('taldav_support_calculator', 'taldav_site_tools_support_calculator_shortcode');
-
-function taldav_site_tools_admin_sidebar_width_fix() {
-    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
-
-    if (!$screen || $screen->id !== 'settings_page_taldav-site-tools') {
-        return;
-    }
-    ?>
-    <style>
-        .taldav-settings-sidebar input.regular-text,
-        .taldav-settings-sidebar input[type=text],
-        .taldav-settings-sidebar input[type=number] {
-            box-sizing: border-box;
-            max-width: 100%;
-            width: 100%;
-        }
-
-        .taldav-settings-sidebar input.small-text {
-            max-width: 96px;
-            width: 96px;
-        }
-    </style>
-    <?php
-}
-add_action('admin_head', 'taldav_site_tools_admin_sidebar_width_fix');

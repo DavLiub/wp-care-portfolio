@@ -7,7 +7,8 @@ Small site-specific WordPress plugin for the TalDav / WP Care portfolio website.
 - Provides the `[taldav_support_calculator]` shortcode.
 - Adds a configurable WordPress support calculator.
 - Lets the site owner edit calculator texts.
-- Lets the site owner add, remove and edit calculator services.
+- Lets the site owner add, remove and edit checkbox service items.
+- Lets the site owner enable a radio-button group and add/remove radio options.
 - Supports a configurable discount rule.
 - Writes calculator output into configured form fields by `name` attribute.
 - Keeps custom JavaScript and CSS outside of the WordPress Customizer.
@@ -23,8 +24,8 @@ Settings -> TalDav Site Tools
 
 The settings page is split into two areas:
 
-- main content: calculator texts and service rows;
-- right sidebar: discount, currency and form integration.
+- main content: calculator texts, checkbox services, and radio options;
+- right sidebar: discount, currency, and form integration.
 
 Available settings:
 
@@ -34,14 +35,26 @@ Available settings:
 - modal description;
 - total label;
 - apply button text;
+- checkbox services list;
+- radio group enabled/disabled;
+- radio group title;
+- radio options list;
 - currency symbol;
 - discount enabled/disabled;
 - discount threshold;
 - discount percent;
 - optional form CSS selector;
 - target field name for the estimated price;
-- target field name for selected services;
-- dynamic service list.
+- target field name for selected services.
+
+## Calculator Structure
+
+The calculator has two configurable item groups:
+
+1. Checkbox services: the visitor can select multiple services.
+2. Radio options: the visitor can select one option from a group, for example support format, urgency, or website size.
+
+Both groups contribute to the final estimate.
 
 ## Form Integration
 
