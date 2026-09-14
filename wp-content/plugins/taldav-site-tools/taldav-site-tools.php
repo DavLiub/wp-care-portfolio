@@ -336,10 +336,17 @@ function taldav_site_tools_asset_version($relative_path) {
 }
 
 function taldav_site_tools_register_assets() {
+    wp_register_style('taldav-site', TALDAV_SITE_TOOLS_URL . 'assets/css/site.css', array(), taldav_site_tools_asset_version('assets/css/site.css'));
     wp_register_style('taldav-pricing', TALDAV_SITE_TOOLS_URL . 'assets/css/pricing.css', array(), taldav_site_tools_asset_version('assets/css/pricing.css'));
+    wp_register_style('taldav-services', TALDAV_SITE_TOOLS_URL . 'assets/css/services.css', array(), taldav_site_tools_asset_version('assets/css/services.css'));
     wp_register_script('taldav-support-calculator', TALDAV_SITE_TOOLS_URL . 'assets/js/support-calculator.js', array(), taldav_site_tools_asset_version('assets/js/support-calculator.js'), true);
 }
 add_action('wp_enqueue_scripts', 'taldav_site_tools_register_assets');
+
+function taldav_site_tools_enqueue_site_assets() {
+    wp_enqueue_style('taldav-site');
+}
+add_action('wp_enqueue_scripts', 'taldav_site_tools_enqueue_site_assets');
 
 function taldav_site_tools_enqueue_pricing_assets() {
     if (is_page('pricing')) {
@@ -348,6 +355,13 @@ function taldav_site_tools_enqueue_pricing_assets() {
     }
 }
 add_action('wp_enqueue_scripts', 'taldav_site_tools_enqueue_pricing_assets');
+
+function taldav_site_tools_enqueue_services_assets() {
+    if (is_page('services')) {
+        wp_enqueue_style('taldav-services');
+    }
+}
+add_action('wp_enqueue_scripts', 'taldav_site_tools_enqueue_services_assets');
 
 function taldav_site_tools_support_calculator_shortcode() {
     $options = taldav_site_tools_get_options();
@@ -410,3 +424,12 @@ function taldav_site_tools_support_calculator_shortcode() {
     return ob_get_clean();
 }
 add_shortcode('taldav_support_calculator', 'taldav_site_tools_support_calculator_shortcode');
+
+function taldav_site_tools_render_support_calculator() {
+    if (!is_page('pricing')) {
+        return;
+    }
+
+    echo taldav_site_tools_support_calculator_shortcode();
+}
+add_action('wp_footer', 'taldav_site_tools_render_support_calculator', 1);
