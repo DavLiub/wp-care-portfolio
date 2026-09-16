@@ -1,0 +1,8 @@
+services:
+  telegram-bot:
+    build:
+      context: ./telegram-bot
+    container_name: wp_care_telegram_bot
+    restart: unless-stopped
+    env_file:
+      - .env.telegram
