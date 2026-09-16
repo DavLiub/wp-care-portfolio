@@ -158,7 +158,39 @@
         return href === '#support-calculator' || href === '#taldav-support-calculator';
     }
 
+    function openLinkedAccordion() {
+        var hash = window.location.hash.slice(1);
+
+        if (!hash) {
+            return;
+        }
+
+        var target = document.getElementById(decodeURIComponent(hash));
+        var details = target && target.matches('details')
+            ? target
+            : target && target.closest('details');
+
+        if (!details) {
+            return;
+        }
+
+        details.open = true;
+
+        requestAnimationFrame(function () {
+            details.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        });
+    }
+
+    window.addEventListener('hashchange', openLinkedAccordion);
+    window.addEventListener('load', openLinkedAccordion);
+
     document.addEventListener('DOMContentLoaded', function () {
+        openLinkedAccordion();
+        window.setTimeout(openLinkedAccordion, 100);
+
         var modal = getModal();
 
         if (!modal) {
