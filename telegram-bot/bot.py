@@ -38,6 +38,28 @@ def menu_markup(language):
     ])
 
 
+def quote_markup(language):
+    messages = DATA[language]["messages"]
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(messages["back"], callback_data="quote:back"),
+        InlineKeyboardButton(messages["cancel"], callback_data="quote:cancel"),
+    ]])
+
+
+def quote_message(context, key):
+    return DATA[language_of(context)]["messages"][key]
+
+
+async def show_prompt(update, context, key):
+    text = quote_message(context, key)
+    markup = quote_markup(language_of(context))
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(text, reply_markup=markup)
+    else:
+        await update.message.reply_text(text, reply_markup=markup)
+
+
 def language_markup():
     return InlineKeyboardMarkup([[
         InlineKeyboardButton("English", callback_data="language:en"),
@@ -87,13 +109,17 @@ async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def show_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
     language = language_of(context)
     action = query.data
     if action == "language":
         return await change_language(update, context)
     if action == "quote":
         return await begin_quote(update, context)
+    if action.startswith("quote:"):
+        await query.answer()
+        await query.edit_message_text(DATA[language]["messages"]["welcome"], reply_markup=menu_markup(language))
+        return ConversationHandler.END
+    await query.answer()
     await query.edit_message_text(
         topic_text(language, action),
         reply_markup=menu_markup(language),
@@ -111,41 +137,42 @@ async def unknown_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def begin_quote(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.callback_query:
-        await update.callback_query.answer()
-        await update.callback_query.edit_message_text("Great. What is your name?")
-    else:
-        await update.message.reply_text("Great. What is your name?")
+    context.user_data["quote_state"] = NAME
+    await show_prompt(update, context, "ask_name")
     return NAME
 
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["name"] = text_limit(update.message.text, 120)
-    await update.message.reply_text("What email address should we use?")
+    context.user_data["quote_state"] = EMAIL
+    await show_prompt(update, context, "ask_email")
     return EMAIL
 
 
 async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     email = text_limit(update.message.text, 160)
     if not EMAIL_PATTERN.match(email):
-        await update.message.reply_text("That email does not look valid. Please enter it again.")
+        await show_prompt(update, context, "invalid_email")
         return EMAIL
     context.user_data["email"] = email
-    await update.message.reply_text("What is your website URL? You can send Skip if you do not have one.")
+    context.user_data["quote_state"] = WEBSITE
+    await show_prompt(update, context, "ask_website")
     return WEBSITE
 
 
 async def get_website(update: Update, context: ContextTypes.DEFAULT_TYPE):
     website = text_limit(update.message.text, 300)
-    context.user_data["website"] = "" if website.lower() in ("skip", "\u043f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c") else website
-    await update.message.reply_text("Briefly describe what you need help with.")
+    skip = quote_message(context, "skip").casefold()
+    context.user_data["website"] = "" if website.casefold() in ("skip", "\u043f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c", skip) else website
+    context.user_data["quote_state"] = DETAILS
+    await show_prompt(update, context, "ask_details")
     return DETAILS
 
 
 async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     now = time.monotonic()
     if now - context.user_data.get("last_submit", 0) < SUBMIT_COOLDOWN:
-        await update.message.reply_text("Please wait a moment before sending another request.")
+        await update.message.reply_text(quote_message(context, "cooldown"))
         return ConversationHandler.END
     context.user_data["last_submit"] = now
     data = context.user_data
@@ -167,20 +194,38 @@ async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=admin_chat_id, text=message)
     except (KeyError, ValueError):
         logger.error("TELEGRAM_ADMIN_CHAT_ID is missing or invalid")
-        await update.message.reply_text("The request form is not configured yet. Please email wp-care@taldav.com.")
+        await update.message.reply_text(quote_message(context, "not_configured"))
         return ConversationHandler.END
     except Exception:
         logger.exception("Could not forward request")
-        await update.message.reply_text("The request could not be sent. Please email wp-care@taldav.com.")
+        await update.message.reply_text(quote_message(context, "send_failed"))
         return ConversationHandler.END
-    await update.message.reply_text("Thank you. Your request was sent. We will contact you.")
+    language = language_of(context)
+    await update.message.reply_text(quote_message(context, "sent"), reply_markup=menu_markup(language))
     context.user_data.clear()
+    context.user_data["language"] = language
     return ConversationHandler.END
+
+
+async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    state = context.user_data.get("quote_state", NAME)
+    if state == NAME:
+        language = language_of(context)
+        context.user_data.pop("quote_state", None)
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(DATA[language]["messages"]["welcome"], reply_markup=menu_markup(language))
+        return ConversationHandler.END
+    previous = {EMAIL: (NAME, "ask_name"), WEBSITE: (EMAIL, "ask_email"), DETAILS: (WEBSITE, "ask_website")}
+    state, prompt = previous[state]
+    context.user_data["quote_state"] = state
+    await show_prompt(update, context, prompt)
+    return state
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = language_of(context)
     context.user_data.clear()
+    context.user_data["language"] = language
     if update.callback_query:
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(DATA[language]["messages"]["cancelled"], reply_markup=menu_markup(language))
@@ -199,7 +244,7 @@ def build_application():
             WEBSITE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_website)],
             DETAILS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_details)],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[CommandHandler("cancel", cancel), CallbackQueryHandler(cancel, pattern="^quote:cancel$"), CallbackQueryHandler(back, pattern="^quote:back$")],
     )
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("cancel", cancel))
