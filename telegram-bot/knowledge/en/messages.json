@@ -1,4 +1,13 @@
 {
   "language": "en",
-  "version": 1
+  "version": 1,
+  "welcome": "Hello. Choose a topic or request a quote.",
+  "quote": "Request a quote",
+  "services": "Services",
+  "pricing": "Pricing",
+  "process": "How it works",
+  "limits": "What we do not do",
+  "contact": "Contact a person",
+  "language_menu": "Change language",
+  "language_name": "English"
 }

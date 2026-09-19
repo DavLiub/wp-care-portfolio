@@ -1,6 +1,22 @@
 {
   "services": {
-    "text": "WP Care services",
+    "text": "WP Care helps with WordPress setup, hosting and domain basics, updates, backups, diagnostics, small fixes, and ongoing website support.",
     "url": "https://wp-care.taldav.com/services/"
+  },
+  "pricing": {
+    "text": "Pricing depends on the website and the scope of support.",
+    "url": "https://wp-care.taldav.com/pricing/"
+  },
+  "process": {
+    "text": "Describe the website and the requested result, receive a scope and estimate, then approve the work before implementation.",
+    "url": "https://wp-care.taldav.com/contact/"
+  },
+  "limits": {
+    "text": "We do not promise unlimited support, undefined large projects, or work outside the agreed scope.",
+    "url": "https://wp-care.taldav.com/pricing/"
+  },
+  "contact": {
+    "text": "Use Request a quote to send your details and describe the task.",
+    "url": "https://wp-care.taldav.com/contact/"
   }
 }
