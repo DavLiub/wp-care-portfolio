@@ -1,5 +1,6 @@
 # Secrets
 .env
+.env.telegram
 credentials.private.txt
 
 # Database
