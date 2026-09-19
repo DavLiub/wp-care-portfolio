@@ -3,9 +3,10 @@ import os
 import re
 import time
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     Application,
+    CallbackQueryHandler,
     CommandHandler,
     ConversationHandler,
     ContextTypes,
@@ -13,7 +14,7 @@ from telegram.ext import (
     filters,
 )
 
-from guide import DATA, language_buttons, menu_buttons, topic_text
+from guide import DATA, menu_actions, topic_text
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,16 +30,19 @@ def language_of(context):
     return value if value in DATA else "en"
 
 
-def guide_menu(language):
-    return ReplyKeyboardMarkup(menu_buttons(language), resize_keyboard=True)
+def menu_markup(language):
+    rows = menu_actions(language)
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(text, callback_data=action) for text, action in row]
+        for row in rows
+    ])
 
 
-def language_menu():
-    return ReplyKeyboardMarkup([language_buttons()], resize_keyboard=True, one_time_keyboard=True)
-
-
-def main_menu(context):
-    return guide_menu(language_of(context))
+def language_markup():
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton("English", callback_data="language:en"),
+        InlineKeyboardButton(DATA["ru"]["messages"]["language_name"], callback_data="language:ru"),
+    ]])
 
 
 def text_limit(value, limit=1200):
@@ -49,47 +53,70 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await update.message.reply_text(
         "Choose language / \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u044f\u0437\u044b\u043a:",
-        reply_markup=language_menu(),
+        reply_markup=language_markup(),
     )
     return ConversationHandler.END
 
 
 async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    language = "ru" if update.message.text.casefold() == DATA["ru"]["messages"]["language_name"].casefold() else "en"
+    query = update.callback_query
+    await query.answer()
+    language = query.data.split(":", 1)[1]
     context.user_data["language"] = language
-    await update.message.reply_text(DATA[language]["messages"]["welcome"], reply_markup=guide_menu(language))
-    return ConversationHandler.END
-
-
-async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Choose language / \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u044f\u0437\u044b\u043a:",
-        reply_markup=language_menu(),
+    await query.edit_message_text(
+        DATA[language]["messages"]["welcome"],
+        reply_markup=menu_markup(language),
     )
     return ConversationHandler.END
 
 
-async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    language = language_of(context)
-    messages = DATA[language]["messages"]
-    choice = update.message.text
-    if choice == messages["quote"]:
-        await update.message.reply_text("Great. What is your name?", reply_markup=ReplyKeyboardRemove())
-        return NAME
-    if choice == messages["language_menu"]:
-        return await change_language(update, context)
-    actions = {
-        messages["services"]: "services",
-        messages["pricing"]: "pricing",
-        messages["process"]: "process",
-        messages["limits"]: "limits",
-        messages["contact"]: "contact",
-    }
-    if choice in actions:
-        await update.message.reply_text(topic_text(language, actions[choice]), reply_markup=main_menu(context))
-        return ConversationHandler.END
-    await update.message.reply_text(messages["unknown"], reply_markup=main_menu(context))
+async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_reply_markup(reply_markup=language_markup())
     return ConversationHandler.END
+
+
+async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Choose language / \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u044f\u0437\u044b\u043a:",
+        reply_markup=language_markup(),
+    )
+    return ConversationHandler.END
+
+
+async def show_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    language = language_of(context)
+    action = query.data
+    if action == "language":
+        return await change_language(update, context)
+    if action == "quote":
+        return await begin_quote(update, context)
+    await query.edit_message_text(
+        topic_text(language, action),
+        reply_markup=menu_markup(language),
+    )
+    return ConversationHandler.END
+
+
+async def unknown_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    language = language_of(context)
+    await update.message.reply_text(
+        DATA[language]["messages"]["unknown"],
+        reply_markup=menu_markup(language),
+    )
+    return ConversationHandler.END
+
+
+async def begin_quote(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text("Great. What is your name?")
+    else:
+        await update.message.reply_text("Great. What is your name?")
+    return NAME
 
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -118,7 +145,7 @@ async def get_website(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     now = time.monotonic()
     if now - context.user_data.get("last_submit", 0) < SUBMIT_COOLDOWN:
-        await update.message.reply_text("Please wait a moment before sending another request.", reply_markup=main_menu(context))
+        await update.message.reply_text("Please wait a moment before sending another request.")
         return ConversationHandler.END
     context.user_data["last_submit"] = now
     data = context.user_data
@@ -140,13 +167,13 @@ async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=admin_chat_id, text=message)
     except (KeyError, ValueError):
         logger.error("TELEGRAM_ADMIN_CHAT_ID is missing or invalid")
-        await update.message.reply_text("The request form is not configured yet. Please email wp-care@taldav.com.", reply_markup=main_menu(context))
+        await update.message.reply_text("The request form is not configured yet. Please email wp-care@taldav.com.")
         return ConversationHandler.END
     except Exception:
         logger.exception("Could not forward request")
-        await update.message.reply_text("The request could not be sent. Please email wp-care@taldav.com.", reply_markup=main_menu(context))
+        await update.message.reply_text("The request could not be sent. Please email wp-care@taldav.com.")
         return ConversationHandler.END
-    await update.message.reply_text("Thank you. Your request was sent. We will contact you after reviewing it.", reply_markup=main_menu(context))
+    await update.message.reply_text("Thank you. Your request was sent. We will contact you.")
     context.user_data.clear()
     return ConversationHandler.END
 
@@ -154,15 +181,18 @@ async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = language_of(context)
     context.user_data.clear()
-    await update.message.reply_text(DATA[language]["messages"]["cancelled"], reply_markup=guide_menu(language))
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(DATA[language]["messages"]["cancelled"], reply_markup=menu_markup(language))
+    else:
+        await update.message.reply_text(DATA[language]["messages"]["cancelled"], reply_markup=menu_markup(language))
     return ConversationHandler.END
 
 
 def build_application():
     application = Application.builder().token(os.environ["TELEGRAM_BOT_TOKEN"]).build()
-    quote_pattern = "|".join(re.escape(DATA[language]["messages"]["quote"]) for language in DATA)
     conversation = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex(f"^({quote_pattern})$"), menu)],
+        entry_points=[CallbackQueryHandler(begin_quote, pattern="^quote$")],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_email)],
@@ -173,10 +203,11 @@ def build_application():
     )
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("cancel", cancel))
-    application.add_handler(CommandHandler("language", change_language))
-    application.add_handler(MessageHandler(filters.Regex("(?i)^(English|\u0420\u0443\u0441\u0441\u043a\u0438\u0439)$"), choose_language))
+    application.add_handler(CommandHandler("language", language_command))
+    application.add_handler(CallbackQueryHandler(choose_language, pattern="^language:(en|ru)$"))
     application.add_handler(conversation)
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu))
+    application.add_handler(CallbackQueryHandler(show_topic))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_text))
     return application
 
 

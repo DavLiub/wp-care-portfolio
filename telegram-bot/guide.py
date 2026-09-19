@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-
 ROOT = Path(__file__).parent
 LANGUAGES = ("en", "ru")
 DATA = {}
@@ -35,6 +34,17 @@ def menu_buttons(language):
         [messages["process"], messages["limits"]],
         [messages["contact"]],
         [messages["language_menu"]],
+    ]
+
+
+def menu_actions(language):
+    messages = DATA[language]["messages"]
+    return [
+        [(messages["quote"], "quote")],
+        [(messages["services"], "services"), (messages["pricing"], "pricing")],
+        [(messages["process"], "process"), (messages["limits"], "limits")],
+        [(messages["contact"], "contact")],
+        [(messages["language_menu"], "language")],
     ]
 
 
