@@ -50,6 +50,21 @@ class QuoteTest(unittest.TestCase):
                 self.assertEqual(self.message.reply_text.call_args.args[0], DATA[language]["messages"]["sent"])
                 self.assertEqual(self.context.user_data, {"language": language})
 
+    def test_first_request_during_low_uptime(self):
+        self.context.user_data.update(language="en", name="Alex", email="alex@example.com")
+        with patch("bot.time", SimpleNamespace(monotonic=lambda: 5)):
+            with patch.dict(os.environ, {"TELEGRAM_ADMIN_CHAT_ID": "42"}):
+                self.assertEqual(self.send_text("Need help", get_details), ConversationHandler.END)
+        self.context.bot.send_message.assert_awaited_once()
+        self.assertEqual(self.message.reply_text.call_args.args[0], DATA["en"]["messages"]["sent"])
+
+    def test_recent_previous_request_is_delayed(self):
+        self.context.user_data.update(language="en", last_submit=4)
+        with patch("bot.time", SimpleNamespace(monotonic=lambda: 5)):
+            self.assertEqual(self.send_text("Need help", get_details), ConversationHandler.END)
+        self.context.bot.send_message.assert_not_awaited()
+        self.assertEqual(self.message.reply_text.call_args.args[0], DATA["en"]["messages"]["cooldown"])
+
     def test_back_and_cancel_in_both_languages(self):
         for language in ("en", "ru"):
             with self.subTest(language=language):

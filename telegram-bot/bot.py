@@ -171,7 +171,8 @@ async def get_website(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     now = time.monotonic()
-    if now - context.user_data.get("last_submit", 0) < SUBMIT_COOLDOWN:
+    last_submit = context.user_data.get("last_submit")
+    if last_submit is not None and now - last_submit < SUBMIT_COOLDOWN:
         await update.message.reply_text(quote_message(context, "cooldown"))
         return ConversationHandler.END
     context.user_data["last_submit"] = now
