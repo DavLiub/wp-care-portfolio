@@ -20,7 +20,7 @@ load_data()
 
 
 def language_code(label):
-    return "ru" if label == DATA["ru"]["messages"]["language_name"] else "en"
+    return "ru" if label.casefold() == DATA["ru"]["messages"]["language_name"].casefold() else "en"
 
 
 def language_buttons():
