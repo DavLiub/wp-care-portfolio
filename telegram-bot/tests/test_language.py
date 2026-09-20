@@ -37,6 +37,22 @@ class LanguageTest(unittest.TestCase):
         self.assertIn("WordPress", text)
         self.assertGreater(len(text), 10)
 
+    def test_russian_scenario_text_is_readable(self):
+        messages = read_json("ru", "messages")
+        pricing = read_json("ru", "pricing")
+        process = read_json("ru", "process")
+        for value in (messages["ask_name"], messages["back"], messages["cancel"],
+                      pricing["intro"], process["intro"]):
+            self.assertTrue(any(0x0400 <= ord(char) <= 0x04FF for char in value))
+        for value in messages.values():
+            if isinstance(value, str):
+                self.assertNotIn("???", value)
+        for section in (pricing, process):
+            self.assertEqual(set(section["choices"]),
+                             {"one_time", "content", "technical", "custom"})
+            for choice in section["choices"].values():
+                self.assertNotIn("???", choice["label"] + choice["text"])
+
     def test_text_from_other_language_is_accepted(self):
         samples = (
             "\u041c\u043d\u0435 \u043d\u0443\u0436\u0435\u043d \u0441\u0430\u0439\u0442",

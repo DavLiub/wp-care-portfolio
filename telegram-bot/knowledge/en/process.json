@@ -1,0 +1,22 @@
+{
+  "intro": "Choose a way to work with us. We review your request, agree on scope and estimate, then begin only after your approval.",
+  "url": "https://wp-care.taldav.com/services/",
+  "choices": {
+    "one_time": {
+      "label": "One-time task",
+      "text": "Tell us the change you need. We review the website, confirm scope and estimate, complete the task, test it and send a short summary."
+    },
+    "content": {
+      "label": "Content support",
+      "text": "Tell us what needs updating and how often. We agree on a monthly content plan, apply your materials and check the result on desktop and mobile."
+    },
+    "technical": {
+      "label": "Technical support",
+      "text": "We review the website and its components, agree on maintenance scope, then handle updates, backups and checks on an ongoing basis."
+    },
+    "custom": {
+      "label": "Tell us what you need",
+      "text": "Describe the goal even if you are unsure which service fits. We will ask for missing details and propose the next step."
+    }
+  }
+}

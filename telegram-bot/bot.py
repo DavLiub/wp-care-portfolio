@@ -4,6 +4,7 @@ import re
 import time
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.error import BadRequest
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -14,7 +15,7 @@ from telegram.ext import (
     filters,
 )
 
-from guide import DATA, menu_actions, topic_text
+from guide import DATA, choice_text, menu_actions, section_text, topic_text
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,6 +24,14 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 NAME, EMAIL, WEBSITE, DETAILS = range(4)
 SUBMIT_COOLDOWN = 60
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+async def edit_view(query, text, reply_markup):
+    try:
+        await query.edit_message_text(text, reply_markup=reply_markup)
+    except BadRequest as error:
+        if "message is not modified" not in str(error).lower():
+            raise
 
 
 def language_of(context):
@@ -38,11 +47,50 @@ def menu_markup(language):
     ])
 
 
+def section_markup(language, section):
+    choices = DATA[language][section]["choices"]
+    rows = [
+        [InlineKeyboardButton(item["label"], callback_data=f"{section}:{choice}")]
+        for choice, item in choices.items()
+    ]
+    rows.append([InlineKeyboardButton(DATA[language]["messages"]["home"], callback_data="home")])
+    return InlineKeyboardMarkup(rows)
+
+
+def choice_markup(language, section, choice):
+    messages = DATA[language]["messages"]
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(messages["start_request"], callback_data=f"quote:{section}:{choice}")],
+        [InlineKeyboardButton(messages["back_to_options"], callback_data=section)],
+        [InlineKeyboardButton(messages["home"], callback_data="home")],
+    ])
+
+
+def detail_markup(language):
+    messages = DATA[language]["messages"]
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(messages["quote"], callback_data="quote")],
+        [InlineKeyboardButton(messages["home"], callback_data="home")],
+    ])
+
+
+def clear_quote(context):
+    language = context.user_data.get("language")
+    last_submit = context.user_data.get("last_submit")
+    context.user_data.clear()
+    if language in DATA:
+        context.user_data["language"] = language
+    if last_submit is not None:
+        context.user_data["last_submit"] = last_submit
+
+
 def quote_markup(language):
     messages = DATA[language]["messages"]
     return InlineKeyboardMarkup([[
         InlineKeyboardButton(messages["back"], callback_data="quote:back"),
         InlineKeyboardButton(messages["cancel"], callback_data="quote:cancel"),
+    ], [
+        InlineKeyboardButton(messages["home"], callback_data="home"),
     ]])
 
 
@@ -51,20 +99,29 @@ def quote_message(context, key):
 
 
 async def show_prompt(update, context, key):
+    language = language_of(context)
     text = quote_message(context, key)
-    markup = quote_markup(language_of(context))
+    origin = context.user_data.get("quote_origin")
+    if key == "ask_name" and origin:
+        section, choice = origin.split(":")
+        text = DATA[language][section]["choices"][choice]["label"] + "\n\n" + text
+    markup = quote_markup(language)
     if update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.edit_message_text(text, reply_markup=markup)
+        await edit_view(update.callback_query,text, reply_markup=markup)
     else:
         await update.message.reply_text(text, reply_markup=markup)
 
 
 def language_markup():
-    return InlineKeyboardMarkup([[
-        InlineKeyboardButton("English", callback_data="language:en"),
-        InlineKeyboardButton(DATA["ru"]["messages"]["language_name"], callback_data="language:ru"),
-    ]])
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("English", callback_data="language:en"),
+            InlineKeyboardButton(DATA["ru"]["messages"]["language_name"], callback_data="language:ru"),
+        ],
+        [InlineKeyboardButton(DATA["en"]["messages"]["home"] + " / " + DATA["ru"]["messages"]["home"],
+                              callback_data="home")],
+    ])
 
 
 def text_limit(value, limit=1200):
@@ -72,7 +129,8 @@ def text_limit(value, limit=1200):
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
+    clear_quote(context)
+    context.user_data.pop("language", None)
     await update.message.reply_text(
         "Choose language / \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u044f\u0437\u044b\u043a:",
         reply_markup=language_markup(),
@@ -85,7 +143,7 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     language = query.data.split(":", 1)[1]
     context.user_data["language"] = language
-    await query.edit_message_text(
+    await edit_view(query,
         DATA[language]["messages"]["welcome"],
         reply_markup=menu_markup(language),
     )
@@ -95,14 +153,31 @@ async def choose_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    await query.edit_message_reply_markup(reply_markup=language_markup())
+    try:
+        await query.edit_message_reply_markup(reply_markup=language_markup())
+    except BadRequest as error:
+        if "message is not modified" not in str(error).lower():
+            raise
     return ConversationHandler.END
 
 
 async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    clear_quote(context)
     await update.message.reply_text(
         "Choose language / \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u044f\u0437\u044b\u043a:",
         reply_markup=language_markup(),
+    )
+    return ConversationHandler.END
+
+
+async def home(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    language = language_of(context)
+    clear_quote(context)
+    query = update.callback_query
+    await query.answer()
+    await edit_view(query,
+        DATA[language]["messages"]["welcome"],
+        reply_markup=menu_markup(language),
     )
     return ConversationHandler.END
 
@@ -111,20 +186,44 @@ async def show_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     language = language_of(context)
     action = query.data
+    if action == "home":
+        return await home(update, context)
     if action == "language":
         return await change_language(update, context)
     if action == "quote":
         return await begin_quote(update, context)
     if action.startswith("quote:"):
+        return await home(update, context)
+    if action in ("pricing", "process"):
         await query.answer()
-        await query.edit_message_text(DATA[language]["messages"]["welcome"], reply_markup=menu_markup(language))
+        await edit_view(query,
+            section_text(language, action),
+            reply_markup=section_markup(language, action),
+        )
         return ConversationHandler.END
+    if ":" in action:
+        section, choice = action.split(":", 1)
+        if section in ("pricing", "process") and choice in DATA[language][section]["choices"]:
+            await query.answer()
+            await edit_view(query,
+                choice_text(language, section, choice),
+                reply_markup=choice_markup(language, section, choice),
+            )
+            return ConversationHandler.END
+        return await home(update, context)
+    if action not in DATA[language]["topics"]:
+        return await home(update, context)
     await query.answer()
-    await query.edit_message_text(
+    await edit_view(query,
         topic_text(language, action),
-        reply_markup=menu_markup(language),
+        reply_markup=detail_markup(language),
     )
     return ConversationHandler.END
+
+
+async def leave_quote(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    clear_quote(context)
+    return await show_topic(update, context)
 
 
 async def unknown_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -137,6 +236,14 @@ async def unknown_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def begin_quote(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    language = language_of(context)
+    action = update.callback_query.data if update.callback_query else "quote"
+    clear_quote(context)
+    parts = action.split(":")
+    if len(parts) == 3 and parts[1] in ("pricing", "process"):
+        section, choice = parts[1:]
+        if choice in DATA[language][section]["choices"]:
+            context.user_data["quote_origin"] = f"{section}:{choice}"
     context.user_data["quote_state"] = NAME
     await show_prompt(update, context, "ask_name")
     return NAME
@@ -173,16 +280,24 @@ async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     now = time.monotonic()
     last_submit = context.user_data.get("last_submit")
     if last_submit is not None and now - last_submit < SUBMIT_COOLDOWN:
-        await update.message.reply_text(quote_message(context, "cooldown"))
+        language = language_of(context)
+        await update.message.reply_text(
+            quote_message(context, "cooldown"), reply_markup=menu_markup(language)
+        )
+        clear_quote(context)
         return ConversationHandler.END
     context.user_data["last_submit"] = now
     data = context.user_data
     user = update.effective_user
     website = data.get("website") or "Not provided"
     username = f"@{user.username}" if user and user.username else "No username"
+    origin = data.get("quote_origin")
+    section, choice = origin.split(":") if origin else (None, None)
+    service = DATA[language_of(context)][section]["choices"][choice]["label"] if origin else "General request"
     message = (
         "New WP Care request\n\n"
         f"Language: {language_of(context)}\n"
+        f"Service: {service}\n"
         f"Name: {data.get('name', 'Not provided')}\n"
         f"Email: {data.get('email', 'Not provided')}\n"
         f"Website: {website}\n"
@@ -195,26 +310,41 @@ async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=admin_chat_id, text=message)
     except (KeyError, ValueError):
         logger.error("TELEGRAM_ADMIN_CHAT_ID is missing or invalid")
-        await update.message.reply_text(quote_message(context, "not_configured"))
+        language = language_of(context)
+        await update.message.reply_text(
+            quote_message(context, "not_configured"), reply_markup=menu_markup(language)
+        )
+        clear_quote(context)
         return ConversationHandler.END
     except Exception:
         logger.exception("Could not forward request")
-        await update.message.reply_text(quote_message(context, "send_failed"))
+        language = language_of(context)
+        await update.message.reply_text(
+            quote_message(context, "send_failed"), reply_markup=menu_markup(language)
+        )
+        clear_quote(context)
         return ConversationHandler.END
     language = language_of(context)
     await update.message.reply_text(quote_message(context, "sent"), reply_markup=menu_markup(language))
-    context.user_data.clear()
-    context.user_data["language"] = language
+    clear_quote(context)
     return ConversationHandler.END
 
 
 async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state = context.user_data.get("quote_state", NAME)
     if state == NAME:
+        origin = context.user_data.get("quote_origin")
         language = language_of(context)
-        context.user_data.pop("quote_state", None)
-        await update.callback_query.answer()
-        await update.callback_query.edit_message_text(DATA[language]["messages"]["welcome"], reply_markup=menu_markup(language))
+        clear_quote(context)
+        if origin:
+            section, choice = origin.split(":")
+            await update.callback_query.answer()
+            await edit_view(update.callback_query,
+                choice_text(language, section, choice),
+                reply_markup=choice_markup(language, section, choice),
+            )
+        else:
+            await home(update, context)
         return ConversationHandler.END
     previous = {EMAIL: (NAME, "ask_name"), WEBSITE: (EMAIL, "ask_email"), DETAILS: (WEBSITE, "ask_website")}
     state, prompt = previous[state]
@@ -225,11 +355,10 @@ async def back(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     language = language_of(context)
-    context.user_data.clear()
-    context.user_data["language"] = language
+    clear_quote(context)
     if update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.edit_message_text(DATA[language]["messages"]["cancelled"], reply_markup=menu_markup(language))
+        await edit_view(update.callback_query,DATA[language]["messages"]["cancelled"], reply_markup=menu_markup(language))
     else:
         await update.message.reply_text(DATA[language]["messages"]["cancelled"], reply_markup=menu_markup(language))
     return ConversationHandler.END
@@ -238,20 +367,30 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def build_application():
     application = Application.builder().token(os.environ["TELEGRAM_BOT_TOKEN"]).build()
     conversation = ConversationHandler(
-        entry_points=[CallbackQueryHandler(begin_quote, pattern="^quote$")],
+        entry_points=[CallbackQueryHandler(begin_quote, pattern=r"^quote(?::(?:pricing|process):[a-z_]+)?$")],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_email)],
             WEBSITE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_website)],
             DETAILS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_details)],
         },
-        fallbacks=[CommandHandler("cancel", cancel), CallbackQueryHandler(cancel, pattern="^quote:cancel$"), CallbackQueryHandler(back, pattern="^quote:back$")],
+        fallbacks=[
+            CommandHandler("start", start),
+            CommandHandler("cancel", cancel),
+            CommandHandler("language", language_command),
+            CallbackQueryHandler(cancel, pattern="^quote:cancel$"),
+            CallbackQueryHandler(back, pattern="^quote:back$"),
+            CallbackQueryHandler(home, pattern="^home$"),
+            CallbackQueryHandler(choose_language, pattern="^language:(en|ru)$"),
+            CallbackQueryHandler(leave_quote, pattern=r"^(?:services|pricing|process|limits|contact|language)(?::[a-z_]+)?$"),
+        ],
+        allow_reentry=True,
     )
+    application.add_handler(conversation)
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("cancel", cancel))
     application.add_handler(CommandHandler("language", language_command))
     application.add_handler(CallbackQueryHandler(choose_language, pattern="^language:(en|ru)$"))
-    application.add_handler(conversation)
     application.add_handler(CallbackQueryHandler(show_topic))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_text))
     return application
