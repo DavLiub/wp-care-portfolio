@@ -23,5 +23,8 @@
   "send_failed": "The request could not be sent. Please email wp-care@taldav.com.",
   "sent": "Thank you. Your request was sent. We will contact you.",
   "cancelled": "Request cancelled.",
-  "unknown": "Please use the buttons to choose a topic or request a quote."
+  "unknown": "Please use the buttons to choose a topic or request a quote.",
+  "home": "Main menu",
+  "start_request": "Request a quote",
+  "back_to_options": "Back to options"
 }

@@ -14,7 +14,7 @@ class QuoteTest(unittest.TestCase):
     def setUp(self):
         self.context = SimpleNamespace(user_data={}, bot=SimpleNamespace(send_message=AsyncMock()))
         self.message = SimpleNamespace(text="", reply_text=AsyncMock())
-        self.query = SimpleNamespace(answer=AsyncMock(), edit_message_text=AsyncMock())
+        self.query = SimpleNamespace(data="quote", answer=AsyncMock(), edit_message_text=AsyncMock())
         self.update = SimpleNamespace(message=self.message, callback_query=None,
                                       effective_user=SimpleNamespace(username="tester"),
                                       effective_chat=SimpleNamespace(id=123))
@@ -48,7 +48,8 @@ class QuoteTest(unittest.TestCase):
                 self.context.bot.send_message.assert_awaited_once()
                 self.assertIn("Language: " + language, self.context.bot.send_message.call_args.kwargs["text"])
                 self.assertEqual(self.message.reply_text.call_args.args[0], DATA[language]["messages"]["sent"])
-                self.assertEqual(self.context.user_data, {"language": language})
+                self.assertEqual(self.context.user_data["language"], language)
+                self.assertIn("last_submit", self.context.user_data)
 
     def test_first_request_during_low_uptime(self):
         self.context.user_data.update(language="en", name="Alex", email="alex@example.com")
@@ -64,6 +65,8 @@ class QuoteTest(unittest.TestCase):
             self.assertEqual(self.send_text("Need help", get_details), ConversationHandler.END)
         self.context.bot.send_message.assert_not_awaited()
         self.assertEqual(self.message.reply_text.call_args.args[0], DATA["en"]["messages"]["cooldown"])
+        self.assertIsNotNone(self.message.reply_text.call_args.kwargs["reply_markup"])
+        self.assertEqual(self.context.user_data, {"language": "en", "last_submit": 4})
 
     def test_back_and_cancel_in_both_languages(self):
         for language in ("en", "ru"):
