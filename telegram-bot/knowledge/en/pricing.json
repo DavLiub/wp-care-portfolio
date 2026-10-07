@@ -3,16 +3,16 @@
   "url": "https://wp-care.taldav.com/pricing/",
   "choices": {
     "one_time": {
-      "label": "One-time task \u2014 from $75",
+      "label": "One-time task — from $75",
       "text": "One WordPress change, setup task or small fix. Includes request review, up to one hour of work, basic testing and a short summary. Extra work is estimated first."
     },
     "content": {
-      "label": "Content support \u2014 $149/month",
-      "text": "Regular text, image, page and post updates for one website. Includes up to two hours per month; technical maintenance and custom development are separate."
+      "label": "Content support — $149/month",
+      "text": "Regular text, image, page and post updates for one website. Includes up to two hours per month; technical maintenance and custom development are separate. Requests: 3–5 business days. Additional work: $70/hour. One website; unused hours do not roll over. Cancel anytime."
     },
     "technical": {
-      "label": "Technical support \u2014 $229/month",
-      "text": "Complete WordPress Care combines content updates with core, theme and plugin maintenance, backups, monitoring and basic technical checks. Includes up to two hours per month."
+      "label": "Complete WordPress Care — $229/month",
+      "text": "Complete WordPress Care combines content updates with core, theme and plugin maintenance, backups, monitoring and basic technical checks. Includes up to two hours per month. Requests: 2–4 business days. Additional work: $70/hour. One website; unused hours do not roll over. VPS, Docker, DNS, email servers, malware removal and major development require separate review."
     },
     "custom": {
       "label": "Tell us what you need",

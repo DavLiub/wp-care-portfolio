@@ -1,0 +1,48 @@
+{
+  "intro": "Answer three short questions and I will suggest a support format. No contact details needed yet.",
+  "questions": {
+    "mode": {
+      "label": "Frequency",
+      "text": "Question 1 of 3. How often do you need help?",
+      "options": {
+        "one_time": "One task",
+        "monthly": "Regularly, every month",
+        "unsure": "Not sure yet"
+      }
+    },
+    "need": {
+      "label": "Tasks",
+      "text": "Question 2 of 3. What kind of help do you mainly need?",
+      "options": {
+        "content": "Text, images and pages",
+        "care": "WordPress care / small issues",
+        "launch": "Launch a new website",
+        "custom": "VPS, redesign or complex work",
+        "unsure": "I need specialist advice"
+      }
+    },
+    "sites": {
+      "label": "Websites",
+      "text": "Question 3 of 3. How many websites need support?",
+      "options": {
+        "one": "One existing WordPress website",
+        "multiple": "Two or more",
+        "none": "No website yet",
+        "unsure": "Not sure / another situation"
+      }
+    }
+  },
+  "result": "Suggested option: {plan}\n\n{reason}\n\nYour answers:\n{answers}\n\nThis is a preliminary recommendation. The specialist confirms scope, feasibility and price before work begins.",
+  "reasons": {
+    "one_time": "You selected one task for one existing website. A one-time task starts from $75 and includes up to one hour; longer tasks are estimated first.",
+    "content": "For regular content changes on one website, Content Support is $149/month with up to 2 hours of content work. Technical maintenance is excluded.",
+    "technical": "For ongoing care of one website, Complete WordPress Care is $229/month: updates, backups, monitoring and up to 2 hours of content and small technical tasks. Complex issues require separate review.",
+    "multiple": "Standard plans cover one website. Multiple websites need a custom scope and estimate.",
+    "launch": "Launching a website requires agreement on pages, materials, hosting and setup. Start with a custom estimate.",
+    "custom": "VPS, redesign and complex tasks are outside standard plans. The specialist reviews the request and provides a separate estimate.",
+    "unsure": "There is not enough information to recommend a standard plan yet. Describe your task in a request and the specialist will help choose the right format."
+  },
+  "custom_label": "Custom estimate",
+  "retry": "Change answers",
+  "summary": "Support selection"
+}

@@ -101,7 +101,9 @@ class FlowTest(unittest.IsolatedAsyncioTestCase):
                 await self.send_update(DATA[language]["messages"]["skip"])
                 self.assertEqual(self.send_mock.call_args.kwargs["text"], DATA[language]["messages"]["ask_details"])
                 await self.send_update("Need WordPress help")
-                self.assertEqual(self.send_mock.call_args.kwargs["text"], DATA[language]["messages"]["sent"])
+                self.assertEqual(len(self.admin_calls()), 0 if language == "en" else 1)
+                await self.send_update(button="quote:send")
+                self.assertEqual(self.edit_mock.call_args.kwargs["text"], DATA[language]["messages"]["sent"])
                 admin = self.admin_calls()[-1].kwargs["text"]
                 self.assertIn("Language: " + language, admin)
                 self.assertIn("Email: alex@example.com", admin)
@@ -163,11 +165,12 @@ class FlowTest(unittest.IsolatedAsyncioTestCase):
                     if kwargs.get("chat_id") == 999:
                         raise RuntimeError("Telegram unavailable")
                 self.send_mock.side_effect = fail_admin
-                with patch("bot.logger.exception") as log_error:
-                    await self.send_update("Need help")
+                await self.send_update("Need help")
+                with patch("bot.logger.error") as log_error:
+                    await self.send_update(button="quote:send")
                 log_error.assert_called_once_with("Could not forward request")
                 self.send_mock.side_effect = None
-                self.assertEqual(self.send_mock.call_args.kwargs["text"], DATA[language]["messages"]["send_failed"])
+                self.assertEqual(self.edit_mock.call_args.kwargs["text"], DATA[language]["messages"]["send_failed"])
 
     async def test_pricing_and_process_choices_in_both_languages(self):
         for language in ("en", "ru"):
@@ -232,9 +235,10 @@ class FlowTest(unittest.IsolatedAsyncioTestCase):
         await self.send_update("alex@example.com")
         await self.send_update("example.com")
         await self.send_update("Update pages monthly")
+        await self.send_update(button="quote:send")
         admin = self.admin_calls()[-1].kwargs["text"]
         self.assertIn("Service: Content support", admin)
-        self.assertIn("Website: example.com", admin)
+        self.assertIn("Website: https://example.com", admin)
 
 
     async def test_language_selector_can_return_home(self):
@@ -277,3 +281,188 @@ class FlowTest(unittest.IsolatedAsyncioTestCase):
         self.markup_mock.side_effect = BadRequest("Message is not modified")
         await self.send_update(button="language")
         self.assertEqual(self.errors, [])
+
+    async def test_validation_review_edit_and_retry(self):
+        for language in ("ru", "en"):
+            self.user_id = 123 if language == "ru" else 124
+            await self.send_update("/start")
+            await self.send_update(button="language:" + language)
+            await self.send_update(button="quote")
+            await self.send_update(" " * 2)
+            self.assertNotIn("name", self.app.user_data[self.user_id])
+            await self.send_update("Alex")
+            await self.send_update("alex@example.com")
+            await self.send_update("javascript:alert(1)")
+            self.assertNotIn("website", self.app.user_data[self.user_id])
+            await self.send_update(button="quote:skip")
+            await self.send_update("x" * 1201)
+            self.assertNotIn("details", self.app.user_data[self.user_id])
+            await self.send_update("Fix layout")
+            before = len(self.admin_calls())
+            self.assertIn("Fix layout", self.send_mock.call_args.kwargs["text"])
+            await self.send_update(button="quote:back")
+            await self.send_update("Fix mobile layout")
+            async def fail_admin(*args, **kwargs):
+                if kwargs.get("chat_id") == 999:
+                    raise RuntimeError("not delivered")
+            self.send_mock.side_effect = fail_admin
+            with patch("bot.logger.error"):
+                await self.send_update(button="quote:send")
+            self.assertEqual(self.app.user_data[self.user_id]["details"], "Fix mobile layout")
+            self.assertNotIn("last_submit", self.app.user_data[self.user_id])
+            self.send_mock.side_effect = None
+            await self.send_update(button="quote:send")
+            self.assertEqual(len(self.admin_calls()), before + 2)
+            self.assertIn("Fix mobile layout", self.admin_calls()[-1].kwargs["text"])
+            await self.send_update(button="quote:send")
+            self.assertEqual(len(self.admin_calls()), before + 2)
+
+    async def test_cooldown_keeps_second_draft(self):
+        await self.send_update("/start")
+        await self.send_update(button="language:ru")
+        for task in ("First task", "Second task"):
+            await self.send_update(button="quote")
+            await self.send_update("Alex")
+            await self.send_update("alex@example.com")
+            await self.send_update(button="quote:skip")
+            await self.send_update(task)
+            await self.send_update(button="quote:send")
+        self.assertEqual(len(self.admin_calls()), 1)
+        self.assertEqual(self.app.user_data[123]["details"], "Second task")
+        self.app.user_data[123]["last_submit"] -= 61
+        await self.send_update(button="quote:send")
+        self.assertEqual(len(self.admin_calls()), 2)
+
+    async def test_group_does_not_collect_request(self):
+        data = {"update_id": 900, "message": {
+            "message_id": 900, "date": 1700000000,
+            "chat": {"id": -123, "type": "group", "title": "Test"},
+            "from": {"id": 123, "is_bot": False, "first_name": "Alex"},
+            "text": "/start", "entities": [{"type": "bot_command", "offset": 0, "length": 6}]}}
+        await self.app.process_update(Update.de_json(data, self.app.bot))
+        self.assertEqual(self.errors, [])
+        self.send_mock.assert_not_awaited()
+
+    async def test_faq_navigation_in_both_languages(self):
+        for language in ('ru', 'en'):
+            self.user_id = 123 if language == 'ru' else 124
+            await self.send_update('/start')
+            await self.send_update(button='language:' + language)
+            await self.send_update(button='faq')
+            self.assertEqual(self.edit_mock.call_args.kwargs['text'], DATA[language]['faq']['intro'])
+            for key, item in DATA[language]['faq']['questions'].items():
+                await self.send_update(button='faq:' + item['group'])
+                await self.send_update(button='faq:' + item['group'] + ':' + key)
+                text = self.edit_mock.call_args.kwargs['text']
+                self.assertIn(item['text'], text)
+                self.assertIn(item['url'], text)
+                await self.send_update(button='quote')
+                self.assertIn(DATA[language]['messages']['ask_name'], self.edit_mock.call_args.kwargs['text'])
+                await self.send_update(button='quote:cancel')
+            await self.send_update(button='faq:bad:unknown')
+            self.assertEqual(self.edit_mock.call_args.kwargs['text'], DATA[language]['messages']['welcome'])
+            self.assertEqual(self.admin_calls(), [])
+
+    async def test_faq_text_and_unknown_questions(self):
+        await self.send_update('/start')
+        await self.send_update(button='language:ru')
+        await self.send_update('Какой тариф выбрать?')
+        self.assertIn(DATA['ru']['faq']['questions']['choose']['text'], self.send_mock.call_args.kwargs['text'])
+        await self.send_update('What costs extra?')
+        self.assertIn(DATA['ru']['faq']['questions']['extras']['text'], self.send_mock.call_args.kwargs['text'])
+        await self.send_update('Гарантируете ремонт за 5 минут?')
+        self.assertEqual(self.send_mock.call_args.kwargs['text'], DATA['ru']['messages']['unknown'])
+        await self.send_update(button='quote')
+        await self.send_update('Какой тариф выбрать?')
+        self.assertEqual(self.app.user_data[123]['name'], 'Какой тариф выбрать?')
+        self.assertEqual(self.admin_calls(), [])
+
+    async def test_selection_to_request_in_each_language(self):
+        journeys = [('one_time', 'content', 'one', 'one_time'),
+                    ('monthly', 'content', 'one', 'content'),
+                    ('monthly', 'care', 'one', 'technical'),
+                    ('monthly', 'care', 'multiple', 'custom')]
+        for number, (language, journey) in enumerate((language, journey)
+                for language in ('ru', 'en') for journey in journeys):
+            mode, need, sites, plan = journey
+            self.user_id = 300 + number
+            await self.send_update('/start')
+            await self.send_update(button='language:' + language)
+            await self.send_update(button='recommend')
+            for key, value in (('mode', mode), ('need', need), ('sites', sites)):
+                await self.send_update(button='recommend:' + key + ':' + value)
+            text = self.edit_mock.call_args.kwargs['text']
+            selection = DATA[language]['selection']
+            label = selection['custom_label'] if plan == 'custom' else DATA[language]['pricing']['choices'][plan]['label']
+            self.assertIn(label, text)
+            self.assertIn(selection['questions']['sites']['options'][sites], text)
+            await self.send_update(button='quote:selection:' + plan)
+            self.assertEqual(self.app.user_data[self.user_id]['quote_origin'], 'pricing:' + plan)
+            self.assertEqual(self.app.user_data[self.user_id]['quote_selection']['sites'], sites)
+            await self.send_update('Alex')
+            await self.send_update('alex@example.com')
+            await self.send_update(button='quote:skip')
+            await self.send_update('Need help')
+            self.assertIn(selection['questions']['need']['options'][need], self.send_mock.call_args.kwargs['text'])
+            self.assertEqual(len(self.admin_calls()), number)
+            await self.send_update(button='quote:send')
+            admin = self.admin_calls()[-1].kwargs['text']
+            self.assertIn('Support selection:', admin)
+            self.assertIn(selection['questions']['sites']['options'][sites], admin)
+            self.assertNotIn('quote_selection', self.app.user_data[self.user_id])
+
+    async def test_selection_back_invalid_and_text(self):
+        await self.send_update('/start')
+        await self.send_update(button='language:ru')
+        await self.send_update(button='recommend')
+        await self.send_update(button='recommend:sites:multiple')
+        self.assertEqual(self.app.user_data[123]['select_step'], 0)
+        await self.send_update(button='recommend:mode:monthly')
+        await self.send_update(button='recommend:mode:one_time')
+        self.assertEqual(self.app.user_data[123]['select_answers'], {'mode': 'monthly'})
+        await self.send_update('Не знаю')
+        self.assertEqual(self.app.user_data[123]['select_step'], 1)
+        await self.send_update(button='recommend:need:care')
+        await self.send_update(button='recommend:sites:one')
+        await self.send_update(button='quote:selection:technical')
+        await self.send_update(button='quote:back')
+        self.assertEqual(self.app.user_data[123]['select_step'], 3)
+        await self.send_update(button='recommend:back')
+        self.assertNotIn('sites', self.app.user_data[123]['select_answers'])
+        await self.send_update(button='recommend:sites:multiple')
+        self.assertIn(DATA['ru']['selection']['custom_label'], self.edit_mock.call_args.kwargs['text'])
+        await self.send_update(button='recommend')
+        self.assertEqual(self.app.user_data[123]['select_answers'], {})
+        await self.send_update('/cancel')
+        self.assertEqual(self.app.user_data[123], {'language': 'ru'})
+        self.assertEqual(self.admin_calls(), [])
+
+    async def test_selection_exit_and_stale_result(self):
+        await self.send_update('/start')
+        await self.send_update(button='language:en')
+        await self.send_update(button='recommend')
+        await self.send_update(button='home')
+        self.assertNotIn('select_step', self.app.user_data[123])
+        await self.send_update(button='quote:selection:technical')
+        self.assertNotIn('quote_origin', self.app.user_data[123])
+        await self.send_update(button='recommend')
+        await self.send_update(button='language:ru')
+        self.assertEqual(self.app.user_data[123], {'language': 'ru'})
+        await self.send_update(button='recommend')
+        await self.send_update(button='faq')
+        self.assertNotIn('select_step', self.app.user_data[123])
+        self.assertEqual(self.admin_calls(), [])
+
+    async def test_group_buttons_do_not_start_intake(self):
+        for number, button in enumerate(('quote', 'recommend', 'language:ru')):
+            data = {'update_id': 950 + number, 'callback_query': {
+                'id': str(950 + number), 'chat_instance': 'test', 'data': button,
+                'from': {'id': 123, 'is_bot': False, 'first_name': 'Alex'},
+                'message': {'message_id': 950 + number, 'date': 1700000000,
+                            'chat': {'id': -123, 'type': 'group', 'title': 'Test'},
+                            'from': {'id': 123456, 'is_bot': True, 'first_name': 'Bot'}}}}
+            await self.app.process_update(Update.de_json(data, self.app.bot))
+        self.assertEqual(self.errors, [])
+        self.send_mock.assert_not_awaited()
+        self.edit_mock.assert_not_awaited()
+        self.assertFalse(self.app.user_data.get(123))

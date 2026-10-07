@@ -1,0 +1,137 @@
+{
+  "reviewed": "2026-10-07",
+  "intro": "Choose a topic and question. Find website terms and request guidance here. The specialist can review individual questions.",
+  "groups": {
+    "plans": {
+      "label": "Plans and pricing"
+    },
+    "start": {
+      "label": "Getting started"
+    },
+    "support": {
+      "label": "Support and limits"
+    }
+  },
+  "questions": {
+    "choose": {
+      "group": "plans",
+      "label": "Which option should I choose?",
+      "text": "For one change or a small issue, choose a one-time task from $75. For regular content edits, Content Support is $149/month. For content plus WordPress updates, backups and monitoring, Complete WordPress Care is $229/month. Multiple websites, VPS or a different scope need a custom plan. If unsure, describe your task and the specialist will help you choose.",
+      "aliases": [
+        "which plan should i choose",
+        "help me choose a plan"
+      ],
+      "url": "https://wp-care.taldav.com/pricing/"
+    },
+    "difference": {
+      "group": "plans",
+      "label": "What is the difference: $149 vs $229?",
+      "text": "Content Support ($149/month) includes up to 2 hours of content edits; technical maintenance is excluded. Complete WordPress Care ($229/month) includes up to 2 hours of content and small technical tasks plus updates, backups, checks and monitoring. Both cover one website; larger tasks require a separate estimate.",
+      "aliases": [
+        "what is the difference between plans",
+        "compare plans"
+      ],
+      "url": "https://wp-care.taldav.com/pricing/"
+    },
+    "extras": {
+      "group": "plans",
+      "label": "What costs extra?",
+      "text": "Hosting, domains, paid themes, plugins, licences and external services are not included. Work beyond a monthly plan is $70/hour. A one-time task from $75 includes up to one hour; longer work is estimated and agreed first. The final price is confirmed before work begins.",
+      "aliases": [
+        "what costs extra",
+        "how much is extra work"
+      ],
+      "url": "https://wp-care.taldav.com/pricing/"
+    },
+    "estimate": {
+      "group": "plans",
+      "label": "Is the calculator price final?",
+      "text": "No. The website calculator gives an estimated monthly price. Custom requirements and third-party plugin support require review. The specialist confirms scope and price before the plan begins. Sending a bot request does not make a payment or order work.",
+      "aliases": [
+        "is the calculator price final",
+        "is this the final price"
+      ],
+      "url": "https://wp-care.taldav.com/pricing/"
+    },
+    "prepare": {
+      "group": "start",
+      "label": "What should I prepare?",
+      "text": "Prepare your name, reply email, website address if available and a short description. For an issue, explain what you expected, what happens, which page is affected and any recent changes. You can include a screenshot or document link. You do not need to diagnose the cause. The bot shows your complete request before sending.",
+      "aliases": [
+        "what should i prepare",
+        "what do you need from me"
+      ],
+      "url": "https://wp-care.taldav.com/services/"
+    },
+    "access": {
+      "group": "start",
+      "label": "Should I send my website password?",
+      "text": "No password is needed for the initial estimate. Describe your task and share the website address first. If administrative access is needed, the specialist will agree on a secure way to provide it separately. Do not include passwords or keys in the bot request.",
+      "aliases": [
+        "should i send my password",
+        "how do i share access"
+      ],
+      "url": "https://wp-care.taldav.com/services/"
+    },
+    "new_site": {
+      "group": "start",
+      "label": "Can I ask before my website exists?",
+      "text": "Yes. We can assess hosting requirements, connect a domain, install WordPress and prepare pages, menus and a theme. You provide materials and retain ownership of the website and accounts. Skip the website field and describe your goal, required pages and available materials. Launch scope is agreed separately.",
+      "aliases": [
+        "i do not have a website",
+        "can i ask without a website"
+      ],
+      "url": "https://wp-care.taldav.com/services/"
+    },
+    "next": {
+      "group": "start",
+      "label": "What happens after I send a request?",
+      "text": "The bot forwards your request to the WP Care specialist. We reply to your email, clarify details, review the task and agree scope and price before starting. The bot does not start work automatically. For direct contact, email wp-care@taldav.com.",
+      "aliases": [
+        "what happens after my request",
+        "how will you contact me"
+      ],
+      "url": "https://wp-care.taldav.com/services/"
+    },
+    "timing": {
+      "group": "support",
+      "label": "What are the timescales? Urgent help?",
+      "text": "The website lists request handling within 3–5 business days for Content Support and 2–4 business days for Complete WordPress Care. This does not promise that every issue will be resolved in that time. One-time and custom task schedules are agreed after review. No 24/7 emergency service is advertised; mention urgency in your description.",
+      "aliases": [
+        "what are the timescales",
+        "do you offer urgent help"
+      ],
+      "url": "https://wp-care.taldav.com/pricing/"
+    },
+    "hours": {
+      "group": "support",
+      "label": "Can I cancel? Do hours roll over?",
+      "text": "Content Support and Complete WordPress Care can be cancelled anytime. Unused hours do not roll over. Standard plans cover one WordPress website. More hours or multiple websites can be covered by a custom plan. Ask the specialist to confirm billing arrangements and the effective cancellation date.",
+      "aliases": [
+        "can i cancel my plan",
+        "do unused hours roll over"
+      ],
+      "url": "https://wp-care.taldav.com/pricing/"
+    },
+    "scope": {
+      "group": "support",
+      "label": "Are VPS, redesign and malware included?",
+      "text": "Standard Complete WordPress Care excludes VPS/Docker/DNS/email administration, major development, redesign, malware removal and recovery after a serious incident. These require separate review and an estimate. VPS/Docker support can be discussed for a custom plan. Repair of third-party plugin defects is not guaranteed.",
+      "aliases": [
+        "what is excluded",
+        "is malware removal included"
+      ],
+      "url": "https://wp-care.taldav.com/pricing/"
+    },
+    "backups": {
+      "group": "support",
+      "label": "Do backups guarantee recovery?",
+      "text": "Backups reduce the risk of data loss but do not replace secure hosting or prevent every problem. Complete WordPress Care includes automated file and database backups, completion monitoring and periodic restore verification. Full restoration, emergency recovery and unsupported software may require a separate estimate.",
+      "aliases": [
+        "do backups guarantee recovery",
+        "what backup checks are included"
+      ],
+      "url": "https://wp-care.taldav.com/services/"
+    }
+  }
+}
