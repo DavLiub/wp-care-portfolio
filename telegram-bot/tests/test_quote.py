@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 from telegram.ext import ConversationHandler
 
-from bot import NAME, EMAIL, WEBSITE, DETAILS, back, begin_quote, cancel, get_details, get_email, get_name, get_website, quote_markup
+from bot import NAME, EMAIL, WEBSITE, DETAILS, REVIEW, send_quote, back, begin_quote, cancel, get_details, get_email, get_name, get_website, quote_markup
 from guide import DATA
 
 
@@ -44,28 +44,33 @@ class QuoteTest(unittest.TestCase):
                 self.assertEqual(self.send_text(DATA[language]["messages"]["skip"], get_website), DETAILS)
                 self.assertEqual(self.context.user_data["website"], "")
                 with patch.dict(os.environ, {"TELEGRAM_ADMIN_CHAT_ID": "42"}):
-                    self.assertEqual(self.send_text("Need WordPress help", get_details), ConversationHandler.END)
+                    self.assertEqual(self.send_text("Need WordPress help", get_details), REVIEW)
+                    self.context.bot.send_message.assert_not_awaited()
+                    self.update.callback_query = self.query
+                    self.assertEqual(asyncio.run(send_quote(self.update, self.context)), ConversationHandler.END)
                 self.context.bot.send_message.assert_awaited_once()
                 self.assertIn("Language: " + language, self.context.bot.send_message.call_args.kwargs["text"])
-                self.assertEqual(self.message.reply_text.call_args.args[0], DATA[language]["messages"]["sent"])
+                self.assertEqual(self.query.edit_message_text.call_args.args[0], DATA[language]["messages"]["sent"])
                 self.assertEqual(self.context.user_data["language"], language)
                 self.assertIn("last_submit", self.context.user_data)
 
     def test_first_request_during_low_uptime(self):
-        self.context.user_data.update(language="en", name="Alex", email="alex@example.com")
+        self.context.user_data.update(language="en", name="Alex", email="alex@example.com", details="Need help")
         with patch("bot.time", SimpleNamespace(monotonic=lambda: 5)):
             with patch.dict(os.environ, {"TELEGRAM_ADMIN_CHAT_ID": "42"}):
-                self.assertEqual(self.send_text("Need help", get_details), ConversationHandler.END)
+                self.update.callback_query = self.query
+                self.assertEqual(asyncio.run(send_quote(self.update, self.context)), ConversationHandler.END)
         self.context.bot.send_message.assert_awaited_once()
-        self.assertEqual(self.message.reply_text.call_args.args[0], DATA["en"]["messages"]["sent"])
+        self.assertEqual(self.query.edit_message_text.call_args.args[0], DATA["en"]["messages"]["sent"])
 
     def test_recent_previous_request_is_delayed(self):
         self.context.user_data.update(language="en", last_submit=4)
         with patch("bot.time", SimpleNamespace(monotonic=lambda: 5)):
-            self.assertEqual(self.send_text("Need help", get_details), ConversationHandler.END)
+            self.update.callback_query = self.query
+            self.assertEqual(asyncio.run(send_quote(self.update, self.context)), REVIEW)
         self.context.bot.send_message.assert_not_awaited()
-        self.assertEqual(self.message.reply_text.call_args.args[0], DATA["en"]["messages"]["cooldown"])
-        self.assertIsNotNone(self.message.reply_text.call_args.kwargs["reply_markup"])
+        self.assertEqual(self.query.edit_message_text.call_args.args[0], DATA["en"]["messages"]["cooldown"])
+        self.assertIsNotNone(self.query.edit_message_text.call_args.kwargs["reply_markup"])
         self.assertEqual(self.context.user_data, {"language": "en", "last_submit": 4})
 
     def test_back_and_cancel_in_both_languages(self):

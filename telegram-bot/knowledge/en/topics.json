@@ -12,11 +12,11 @@
     "url": "https://wp-care.taldav.com/contact/"
   },
   "limits": {
-    "text": "We do not promise unlimited support, undefined large projects, or work outside the agreed scope.",
+    "text": "Standard support excludes major development, redesign, malware removal and recovery after serious incidents. VPS, Docker, DNS and email servers need a separate plan. Repair of third-party plugin defects is not guaranteed. Custom requests are reviewed and estimated first.",
     "url": "https://wp-care.taldav.com/pricing/"
   },
   "contact": {
-    "text": "Use Request a quote to send your details and describe the task.",
+    "text": "Send a request in this bot: the specialist replies to your email. You can also email wp-care@taldav.com directly. Sending a request does not start work automatically.",
     "url": "https://wp-care.taldav.com/contact/"
   }
 }
